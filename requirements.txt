@@ -1,0 +1,4 @@
+pandas
+IPython
+tensorflow==2.8.0
+opencv-python
