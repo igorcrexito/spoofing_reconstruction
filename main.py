@@ -32,10 +32,8 @@ if __name__ == '__main__':
     image_dataset = ImageDataset(base_path=dataset_base_path,
                                  image_size=(params["application_parameters"]["image_size"],
                                              params["application_parameters"]["image_size"]),
+                                 batch_size=params["model_parameters"]["batch_size"],
                                  augmentation_list=params["input_parameters"]["augmentation_list"])
-
-    print("Loading the images and applying the data augmentation operations")
-    database = np.array(image_dataset.load_data(), dtype='float16')
 
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
@@ -44,18 +42,10 @@ if __name__ == '__main__':
                                       input_dimension=params["application_parameters"]["image_size"],
                                       input_modality=modality))
 
-        if params["application_parameters"]["application_mode"] == "training":
+        if params["application_parameters"]["application_mode"] == "train":
             print(f"Training the model for the modality {modality}")
-            model_list[index].fit_model(input_data=database, validation_data=database,
-                                        number_of_epochs=params["model_parameters"]["number_of_epochs"],
-                                        batch_size=params["model_parameters"]["batch_size"])
+            model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
+                                        number_of_epochs=params["model_parameters"]["number_of_epochs"])
         else:
             print("Loading previously trained models")
             model_list[0].model.load_weights(f"trained_models/best_autoencoder_{modality}.hdf5")
-
-    if params["application_parameters"]["plot_reconstruction"]:
-        print("Plotting some images to check the reconstruction")
-        plot_reconstructed_images(model_list=model_list,
-                                  database=database,
-                                  image_size=params["application_parameters"]["image_size"],
-                                  model_index=0)

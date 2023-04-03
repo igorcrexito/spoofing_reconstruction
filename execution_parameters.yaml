@@ -1,7 +1,7 @@
 ## application parameters
 application_parameters:
-  image_size: 112
-  application_mode: inference
+  image_size: 224
+  application_mode: train
   plot_reconstruction: False
 
 
@@ -15,4 +15,4 @@ input_parameters:
 model_parameters:
   number_of_epochs: 50
   learning_rate: 0.0001
-  batch_size: 50
+  batch_size: 10

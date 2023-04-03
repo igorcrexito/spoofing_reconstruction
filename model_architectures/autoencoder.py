@@ -56,13 +56,14 @@ class Autoencoder():
 
         return autoencoder
 
-    def fit_model(self, input_data: np.ndarray, validation_data: np.ndarray, number_of_epochs: int, batch_size: int):
+    def fit_model(self, input_data: np.ndarray, validation_data: np.ndarray, number_of_epochs: int):
         checkpoint = tf.keras.callbacks.ModelCheckpoint(f'trained_models/best_autoencoder_{self.input_modality}.hdf5',
                                                         monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 
-        self.model.fit(input_data, input_data,
-                       epochs=number_of_epochs,
+        self.model.fit_generator(epochs=number_of_epochs,
                        shuffle=True,
-                       batch_size=batch_size,
-                       validation_data=(validation_data, validation_data),
+                       generator=input_data,
+                       validation_data=validation_data,
+                       use_multiprocessing=True,
+                       workers=6,
                        callbacks=[checkpoint])
