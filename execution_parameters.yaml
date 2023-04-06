@@ -1,0 +1,18 @@
+## application parameters
+application_parameters:
+  image_size: 224
+  application_mode: train
+  plot_reconstruction: False
+
+
+## input modalities/transformations
+input_parameters:
+  input_modalities: ['noise', 'rgb']
+  augmentation_list: ["flip", "zoom", "rotate"]
+
+
+## model parameters
+model_parameters:
+  number_of_epochs: 10
+  learning_rate: 0.0001
+  batch_size: 10

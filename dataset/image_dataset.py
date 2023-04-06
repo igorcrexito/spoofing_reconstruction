@@ -1,41 +1,89 @@
 import os
-
 import PIL.Image
 from PIL import Image
-from PIL import ImageEnhance
 import numpy as np
+from tensorflow import keras
+from descriptors.noise_descriptor import NoiseDescriptor
 
-
-class ImageDataset:
-    def __init__(self, base_path: str, image_size: tuple, augmentation_list: list = []):
+class ImageDataset(keras.utils.Sequence):
+    def __init__(self, base_path: str, image_size: tuple, batch_size: int, input_modality: str, augmentation_list: list = [], shuffle: bool = True):
         """
         Instantiates the image dataset based on the provided image path
         """
         self.base_path = base_path
         self.image_size = image_size
+        self.batch_size = batch_size
         self.augmentation_list = augmentation_list
+        self.shuffle = shuffle
+        self.list_of_images = os.listdir(self.base_path)
+        self.input_modality = input_modality
 
-    def load_data(self):
-        """
-        Reads images from the specified path and apply data augmentation
-        """
-        image_dataset = []
+        self.on_epoch_end()
 
-        image_list = os.listdir(self.base_path)
-        for image_path in image_list:
+    def __len__(self):
+        """
+        Denotes the number of batches per epoch
+        """
+        return int(np.floor(len(self.list_of_images) / self.batch_size))
+
+    def __getitem__(self, index):
+        """
+        Generate one batch of data
+        """
+        # Generate indexes of the batch
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+
+        # Find list of IDs
+        list_of_images_temp = [self.list_of_images[k] for k in indexes]
+
+        # Generate data
+        image_batch = self.__data_generation(list_of_images_temp)
+
+        return image_batch, image_batch
+
+    def on_epoch_end(self):
+        """
+        Updates indexes after each epoch
+        """
+        self.indexes = np.arange(len(self.list_of_images))
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
+
+    def __data_generation(self, list_of_images_temp):
+        """
+        Generates data containing batch_size samples
+        """
+        X = []
+
+        for i, image_path in enumerate(list_of_images_temp):
+            # Store sample
             image = Image.open(f"{self.base_path}/{image_path}").resize((self.image_size[0], self.image_size[1]))
-            image_dataset.append(self._normalize_image(image))
 
-            for augmentation in self.augmentation_list:
-                image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
-                image_dataset.append(self._normalize_image(image_augmented))
+            ### GENERATING DATA FOR RGB INPUT MODALITY ###
+            if self.input_modality == 'rgb':
+                X.append(self._normalize_image(image))
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    X.append(self._normalize_image(image_augmented))
 
-        return image_dataset
+            ### GENERATING DATA FOR NOISE INPUT MODALITY ###
+            elif self.input_modality == 'noise':
+                noise_descriptor = NoiseDescriptor(descriptor_name="noise_descriptor")
+                current_image = noise_descriptor.compute_feature(image=np.array(image))
+                X.append(self._normalize_image(current_image))
+
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    current_image = noise_descriptor.compute_feature(image=np.array(image_augmented))
+                    X.append(self._normalize_image(current_image))
+
+        return np.array(X)
 
     def _apply_augmentation(self, image: PIL.Image.Image, augmentation: str):
         """
         Apply augmentation depending on the provided string
         """
+
         if augmentation == 'flip':
             return image.transpose(Image.FLIP_LEFT_RIGHT)
         elif augmentation == 'zoom':
@@ -61,7 +109,7 @@ class ImageDataset:
             minval = image[..., i].min()
             maxval = image[..., i].max()
             if minval != maxval:
-                #image[..., i] -= minval
+                # image[..., i] -= minval
                 image[..., i] /= maxval
         # return Image.fromarray(image.astype('uint8'), 'RGBA')
         return image
