@@ -28,16 +28,19 @@ if __name__ == '__main__':
     with open("execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
-    print("Creating a database based on the specified base path")
-    image_dataset = ImageDataset(base_path=dataset_base_path,
-                                 image_size=(params["application_parameters"]["image_size"],
-                                             params["application_parameters"]["image_size"]),
-                                 batch_size=params["model_parameters"]["batch_size"],
-                                 augmentation_list=params["input_parameters"]["augmentation_list"])
-
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
     for index, modality in enumerate(params["input_parameters"]["input_modalities"]):
+
+        print("Creating a database based on the specified base path and input modality")
+        image_dataset = ImageDataset(base_path=dataset_base_path,
+                                     image_size=(params["application_parameters"]["image_size"],
+                                                 params["application_parameters"]["image_size"]),
+                                     batch_size=params["model_parameters"]["batch_size"],
+                                     input_modality=modality,
+                                     augmentation_list=params["input_parameters"]["augmentation_list"])
+
+        print("Creating a model to fit for each modality")
         model_list.append(Autoencoder(summarize_model=False,
                                       input_dimension=params["application_parameters"]["image_size"],
                                       input_modality=modality))

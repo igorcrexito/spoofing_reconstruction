@@ -3,10 +3,10 @@ import PIL.Image
 from PIL import Image
 import numpy as np
 from tensorflow import keras
-
+from descriptors.noise_descriptor import NoiseDescriptor
 
 class ImageDataset(keras.utils.Sequence):
-    def __init__(self, base_path: str, image_size: tuple, batch_size: int, augmentation_list: list = [], shuffle: bool = True):
+    def __init__(self, base_path: str, image_size: tuple, batch_size: int, input_modality: str, augmentation_list: list = [], shuffle: bool = True):
         """
         Instantiates the image dataset based on the provided image path
         """
@@ -16,6 +16,7 @@ class ImageDataset(keras.utils.Sequence):
         self.augmentation_list = augmentation_list
         self.shuffle = shuffle
         self.list_of_images = os.listdir(self.base_path)
+        self.input_modality = input_modality
 
         self.on_epoch_end()
 
@@ -45,7 +46,7 @@ class ImageDataset(keras.utils.Sequence):
         Updates indexes after each epoch
         """
         self.indexes = np.arange(len(self.list_of_images))
-        if self.shuffle == True:
+        if self.shuffle:
             np.random.shuffle(self.indexes)
 
     def __data_generation(self, list_of_images_temp):
@@ -53,16 +54,28 @@ class ImageDataset(keras.utils.Sequence):
         Generates data containing batch_size samples
         """
         X = []
-        # Generate data
 
         for i, image_path in enumerate(list_of_images_temp):
             # Store sample
             image = Image.open(f"{self.base_path}/{image_path}").resize((self.image_size[0], self.image_size[1]))
-            X.append(self._normalize_image(image))
 
-            for augmentation in self.augmentation_list:
-                image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
-                X.append(self._normalize_image(image_augmented))
+            ### GENERATING DATA FOR RGB INPUT MODALITY ###
+            if self.input_modality == 'rgb':
+                X.append(self._normalize_image(image))
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    X.append(self._normalize_image(image_augmented))
+
+            ### GENERATING DATA FOR NOISE INPUT MODALITY ###
+            elif self.input_modality == 'noise':
+                noise_descriptor = NoiseDescriptor(descriptor_name="noise_descriptor")
+                current_image = noise_descriptor.compute_feature(image=np.array(image))
+                X.append(self._normalize_image(current_image))
+
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    current_image = noise_descriptor.compute_feature(image=np.array(image_augmented))
+                    X.append(self._normalize_image(current_image))
 
         return np.array(X)
 
