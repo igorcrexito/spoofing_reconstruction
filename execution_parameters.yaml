@@ -9,7 +9,7 @@ application_parameters:
 input_parameters:
   input_modalities: ['noise', 'rgb']
   augmentation_list: ["flip", "zoom", "rotate"]
-
+  bsif_computation: True
 
 ## model parameters
 model_parameters:
