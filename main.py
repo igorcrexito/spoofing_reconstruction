@@ -35,7 +35,7 @@ if __name__ == '__main__':
         bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
                                          base_path='filters/texturefilters/',
                                          extension='*.mat')
-        bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(f"{bsif_feature_path}bsif_features.csv")
+        bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(f"{bsif_feature_path}bsif_features.csv", index=False)
 
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
