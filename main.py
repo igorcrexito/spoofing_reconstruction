@@ -1,6 +1,7 @@
 from dataset.image_dataset import ImageDataset
+from descriptors.bsif_descriptor import BSIFDescriptor
 from model_architectures.autoencoder import Autoencoder
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 import random
 import yaml
@@ -23,6 +24,15 @@ def plot_reconstructed_images(model_list: list, database: list, image_size: int,
 
 
 if __name__ == '__main__':
+    image = Image.open("../spoofing_dataset/training_real/real_00001.jpg")
+    image = np.array(ImageOps.grayscale(image))
+    bsif_descriptor = BSIFDescriptor(descriptor_name="bsif")
+
+    computed_image, histogram = bsif_descriptor.compute_feature(image)
+    computed_image = Image.fromarray(np.uint8(computed_image[0]*255))
+    computed_image.show()
+
+if __name__ == '__mains__':
 
     print("Reading the configuration yaml the stores the executation variables")
     with open("execution_parameters.yaml", "r") as f:
