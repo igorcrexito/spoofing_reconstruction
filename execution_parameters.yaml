@@ -1,7 +1,7 @@
 ## application parameters
 application_parameters:
   image_size: 224
-  application_mode: train
+  application_mode: train_autoencoders #train_autoencoders, train_one_class_classifiers, feature_extraction, predict
   plot_reconstruction: False
 
 
@@ -9,7 +9,7 @@ application_parameters:
 input_parameters:
   input_modalities: ['noise', 'rgb']
   augmentation_list: ["flip", "zoom", "rotate"]
-  bsif_computation: True
+  bsif_computation: False
 
 ## model parameters
 model_parameters:

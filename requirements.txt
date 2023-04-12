@@ -6,3 +6,4 @@ pillow
 pyyaml
 scikit-image
 tqdm
+scikit-learn

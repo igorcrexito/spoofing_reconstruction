@@ -1,14 +1,15 @@
 from dataset.image_dataset import ImageDataset
 from descriptors.bsif_descriptor import BSIFDescriptor
 from model_architectures.autoencoder import Autoencoder
+from model_architectures.one_class_classifier import OneClassClassifier
 from PIL import Image
 import numpy as np
 import random
 import yaml
-import pandas as pd
 
 dataset_base_path = '../spoofing_dataset/training_real/'
 bsif_feature_path = 'filters/computed_features/'
+
 
 def plot_reconstructed_images(model_list: list, database: list, image_size: int, model_index: int):
     """
@@ -24,18 +25,22 @@ def plot_reconstructed_images(model_list: list, database: list, image_size: int,
         reconstructed_image.show()
 
 
+def compute_and_write_bsif():
+    bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
+                                     base_path='filters/texturefilters/',
+                                     extension='*.mat')
+    bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(
+        f"{bsif_feature_path}bsif_features.csv", index=False)
+
+
 if __name__ == '__main__':
 
     print("Reading the configuration yaml the stores the executation variables")
     with open("execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
-    print("Computing bsif if the feature is not pre-computed")
     if params["input_parameters"]["bsif_computation"]:
-        bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
-                                         base_path='filters/texturefilters/',
-                                         extension='*.mat')
-        bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(f"{bsif_feature_path}bsif_features.csv", index=False)
+        compute_and_write_bsif()
 
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
@@ -54,7 +59,7 @@ if __name__ == '__main__':
                                       input_dimension=params["application_parameters"]["image_size"],
                                       input_modality=modality))
 
-        if params["application_parameters"]["application_mode"] == "train":
+        if params["application_parameters"]["application_mode"] == "train_autoencoders":
             print(f"Training the model for the modality {modality}")
             model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
                                         number_of_epochs=params["model_parameters"]["number_of_epochs"])
