@@ -1,7 +1,6 @@
 ## application parameters
 application_parameters:
   image_size: 224
-  application_mode: train_autoencoders #train_autoencoders, train_one_class_classifiers, feature_extraction, predict
   plot_reconstruction: False
 
 

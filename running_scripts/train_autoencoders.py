@@ -1,14 +1,16 @@
+import sys
+sys.path.insert(0, '..')
+
 from dataset.image_dataset import ImageDataset
 from descriptors.bsif_descriptor import BSIFDescriptor
 from model_architectures.autoencoder import Autoencoder
-from model_architectures.one_class_classifier import OneClassClassifier
 from PIL import Image
 import numpy as np
 import random
 import yaml
 
-dataset_base_path = '../spoofing_dataset/training_real/'
-bsif_feature_path = 'filters/computed_features/'
+dataset_base_path = '../../spoofing_dataset/training_real/'
+bsif_feature_path = '../filters/computed_features/'
 
 
 def plot_reconstructed_images(model_list: list, database: list, image_size: int, model_index: int):
@@ -27,7 +29,7 @@ def plot_reconstructed_images(model_list: list, database: list, image_size: int,
 
 def compute_and_write_bsif():
     bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
-                                     base_path='filters/texturefilters/',
+                                     base_path='../filters/texturefilters/',
                                      extension='*.mat')
     bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(
         f"{bsif_feature_path}bsif_features.csv", index=False)
@@ -36,7 +38,7 @@ def compute_and_write_bsif():
 if __name__ == '__main__':
 
     print("Reading the configuration yaml the stores the executation variables")
-    with open("execution_parameters.yaml", "r") as f:
+    with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
     if params["input_parameters"]["bsif_computation"]:
@@ -59,10 +61,10 @@ if __name__ == '__main__':
                                       input_dimension=params["application_parameters"]["image_size"],
                                       input_modality=modality))
 
-        if params["application_parameters"]["application_mode"] == "train_autoencoders":
-            print(f"Training the model for the modality {modality}")
-            model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
+        print(f"Training the model for the modality {modality}")
+        model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
                                         number_of_epochs=params["model_parameters"]["number_of_epochs"])
-        else:
-            print("Loading previously trained models")
-            model_list[0].model.load_weights(f"trained_models/best_autoencoder_{modality}.hdf5")
+
+        #else: this is going to be placed into a different script
+        #    print("Loading previously trained models")
+        #    model_list[0].model.load_weights(f"trained_models/best_autoencoder_{modality}.hdf5")
