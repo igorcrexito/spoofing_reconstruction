@@ -12,7 +12,7 @@ import tqdm
 
 class BSIFDescriptor(ImageDescriptor):
 
-    def __init__(self, descriptor_name: str, base_path: str = 'filters/texturefilters/', extension: str = "*.mat",
+    def __init__(self, descriptor_name: str, base_path: str = '../filters/texturefilters/', extension: str = "*.mat",
                  compute_histogram: bool = False, image_size: tuple = (224, 224)):
         super().__init__(descriptor_name)
         self.base_path = base_path

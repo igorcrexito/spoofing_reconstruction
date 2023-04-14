@@ -6,7 +6,7 @@ application_parameters:
 
 ## input modalities/transformations
 input_parameters:
-  input_modalities: ['noise', 'rgb']
+  input_modalities: ['rgb', 'noise']
   augmentation_list: ["flip", "zoom", "rotate"]
   bsif_computation: False
 

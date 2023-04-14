@@ -43,6 +43,7 @@ if __name__ == '__main__':
 
     if params["input_parameters"]["bsif_computation"]:
         compute_and_write_bsif()
+        print(f'BSIF features are computed and stored in: {bsif_feature_path}bsif_features.csv')
 
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
@@ -64,7 +65,3 @@ if __name__ == '__main__':
         print(f"Training the model for the modality {modality}")
         model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
                                         number_of_epochs=params["model_parameters"]["number_of_epochs"])
-
-        #else: this is going to be placed into a different script
-        #    print("Loading previously trained models")
-        #    model_list[0].model.load_weights(f"trained_models/best_autoencoder_{modality}.hdf5")
