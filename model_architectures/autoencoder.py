@@ -6,10 +6,11 @@ import tensorflow as tf
 
 class Autoencoder():
 
-    def __init__(self, input_modality: str, input_dimension: int, summarize_model: bool):
+    def __init__(self, input_modality: str, input_dimension: int, summarize_model: bool, intermediate_layer: str = ""):
         self.input_modality = input_modality
         self._input_dimension = input_dimension
         self.model = self._create_model(summarize_model=summarize_model)
+        self.partial_model = self._retrieve_partial_model(layer_name=intermediate_layer)
 
     def _create_model(self, summarize_model: bool = False):
         input = Input(shape=(self._input_dimension, self._input_dimension, 3), name='main_input')
@@ -33,7 +34,7 @@ class Autoencoder():
         # decoding step -> getting back to original representation
         decoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
         decoding = Conv2D(256, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up1')(decoding)
 
         decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
@@ -61,9 +62,23 @@ class Autoencoder():
                                                         monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 
         self.model.fit_generator(epochs=number_of_epochs,
-                       shuffle=True,
-                       generator=input_data,
-                       validation_data=validation_data,
-                       use_multiprocessing=True,
-                       workers=6,
-                       callbacks=[checkpoint])
+                                 shuffle=True,
+                                 generator=input_data,
+                                 validation_data=validation_data,
+                                 use_multiprocessing=True,
+                                 workers=6,
+                                 callbacks=[checkpoint])
+
+    def _retrieve_partial_model(self, layer_name: str):
+        """
+        This method creates a partial model, running from the input to the specified layer. If no layer is
+        specified, the partial model is the complete model
+        """
+
+        if layer_name != "":
+            intermediate_output = self.model.get_layer(layer_name).output
+            intermediate_model = Model(self.model.input, outputs=[intermediate_output])
+        else:
+            intermediate_model = self.model
+
+        return intermediate_model
