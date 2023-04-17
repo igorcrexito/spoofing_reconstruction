@@ -10,7 +10,7 @@ class OneClassClassifier:
         Only SVM is supported for a while
         """
         self.classifier_name = classifier_name
-        self.classifier = OneClassClassifier.instantiate_classifier(classifier_name=classifier_name)
+        self.classifier = OneClassClassifier._instantiate_classifier(classifier_name=classifier_name)
 
     def fit_model(self, input_data: np.ndarray):
         """
@@ -24,15 +24,17 @@ class OneClassClassifier:
         Method to perform the predictions
         """
         if self.classifier is not None:
-            self.classifier.predict(predict_data)
+            return self.classifier.predict(predict_data)
+        else:
+            return None
 
     @classmethod
-    def instantiate_classifier(cls, classifier_name: str):
+    def _instantiate_classifier(cls, classifier_name: str):
         """
         Class method that instantiates a model based on its name. Only SVM is supported
         """
         if classifier_name == 'svm':
-            classifier = OneClassSVM(gamma='auto')
+            classifier = OneClassSVM(gamma=0.1, kernel='rbf', nu=0.1)
         else:
             classifier = None
 

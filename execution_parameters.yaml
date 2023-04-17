@@ -16,3 +16,7 @@ model_parameters:
   learning_rate: 0.0001
   batch_size: 10
   partial_layer: "intermediate_layer" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
+
+## one-class classifier parameters
+one_class_parameters:
+  classifier_name: 'svm'
