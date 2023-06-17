@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, '..')
 
 from dataset.image_dataset import ImageDataset
@@ -8,9 +9,6 @@ from PIL import Image
 import numpy as np
 import random
 import yaml
-
-dataset_base_path = '../../spoofing_dataset/training_real/'
-bsif_feature_path = '../filters/computed_features/'
 
 
 def plot_reconstructed_images(model_list: list, database: list, image_size: int, model_index: int):
@@ -27,28 +25,18 @@ def plot_reconstructed_images(model_list: list, database: list, image_size: int,
         reconstructed_image.show()
 
 
-def compute_and_write_bsif():
-    bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
-                                     base_path='../filters/texturefilters/',
-                                     extension='*.mat')
-    bsif_descriptor.bsif_precomputation(dataset_path=dataset_base_path).to_csv(
-        f"{bsif_feature_path}bsif_features.csv", index=False)
-
-
 if __name__ == '__main__':
 
     print("Reading the configuration yaml the stores the executation variables")
     with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
-    if params["input_parameters"]["bsif_computation"]:
-        compute_and_write_bsif()
-        print(f'BSIF features are computed and stored in: {bsif_feature_path}bsif_features.csv')
+    dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/*/train/*/*/*.jpg'
+    validation_dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/*/val/*/*/*.jpg'
 
     print("Creating a simple autoencoder model for each input modality")
     model_list = []
     for index, modality in enumerate(params["input_parameters"]["input_modalities"]):
-
         print("Creating a database based on the specified base path and input modality")
         image_dataset = ImageDataset(base_path=dataset_base_path,
                                      image_size=(params["application_parameters"]["image_size"],
@@ -57,11 +45,18 @@ if __name__ == '__main__':
                                      input_modality=modality,
                                      augmentation_list=params["input_parameters"]["augmentation_list"])
 
+        validation_image_dataset = ImageDataset(base_path=validation_dataset_base_path,
+                                                image_size=(params["application_parameters"]["image_size"],
+                                                            params["application_parameters"]["image_size"]),
+                                                batch_size=params["model_parameters"]["batch_size"],
+                                                input_modality=modality,
+                                                augmentation_list=params["input_parameters"]["augmentation_list"])
+
         print("Creating a model to fit for each modality")
         model_list.append(Autoencoder(summarize_model=False,
                                       input_dimension=params["application_parameters"]["image_size"],
                                       input_modality=modality))
 
         print(f"Training the model for the modality {modality}")
-        model_list[index].fit_model(input_data=image_dataset, validation_data=image_dataset,
-                                        number_of_epochs=params["model_parameters"]["number_of_epochs"])
+        model_list[index].fit_model(input_data=image_dataset, validation_data=validation_image_dataset,
+                                    number_of_epochs=params["model_parameters"]["number_of_epochs"])

@@ -27,25 +27,35 @@ class Autoencoder():
         encoding = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pool2')(encoding)
 
         encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
+        encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
+        encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
         encoding = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pool3')(encoding)
+
+        encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
+        encoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
+        encoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
+        encoding = MaxPooling2D(pool_size=(4, 4), strides=(4, 4), padding='same', name='pool4')(encoding)
 
         # decoding step -> getting back to original representation
         decoding = Conv2D(256, (3, 3), activation='relu', padding='same')(encoding)
         decoding = Conv2D(256, (3, 3), activation='relu', padding='same')(decoding)
         decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up1')(decoding)
+        decoding = UpSampling2D(size=(4, 4), name='up1')(decoding)
+
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
+        decoding = UpSampling2D(size=(2, 2), name='up2')(decoding)
 
         decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
         decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(decoding)
         decoding = Conv2D(64, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up2')(decoding)
+        decoding = UpSampling2D(size=(2, 2), name='up3')(decoding)
 
         decoding = Conv2D(64, (3, 3), activation='relu', padding='same')(decoding)
         decoding = Conv2D(64, (3, 3), activation='relu', padding='same')(decoding)
         decoding = Conv2D(32, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up3')(decoding)
+        decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
         output = Conv2D(3, (3, 3), activation='relu', padding='same')(decoding)
 

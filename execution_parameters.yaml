@@ -1,22 +1,44 @@
 ## application parameters
 application_parameters:
-  image_size: 224
+  image_size: 256
   plot_reconstruction: False
+  dataset: 'recod-mpad' ##swax or recod-mpad
 
+## dataset parameters
+dataset_parameters:
+  base_path: '../../recod-mpad/'
+  execution_mode: 'train'
 
 ## input modalities/transformations
 input_parameters:
-  input_modalities: ['rgb', 'noise']
-  augmentation_list: ["flip", "zoom", "rotate"]
-  bsif_computation: False
+  input_modalities: ['elbp', 'reflectance', 'bsif_7x7_5']
+  augmentation_list: ["flip"]
+  bsif_base_path: '../filters/computed_features/'
 
 ## model parameters
 model_parameters:
   number_of_epochs: 50
-  learning_rate: 0.0001
-  batch_size: 10
+  learning_rate: 0.0025
+  batch_size: 15
   partial_layer: "intermediate_layer" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
+
+## visualization parameters
+visualization_parameters:
+  compress_method: "pca"
+  number_of_dimensions: 3
+  visualize_features: True
+
+## prediction parameters
+prediction_parameters:
+  model_pretrain: False
+  features_to_predict: ['elbp', 'reflectance', 'bsif_7x7_5'] ## must be the ones into the input modalities
 
 ## one-class classifier parameters
 one_class_parameters:
-  classifier_name: 'svm'
+  classifier_name: 'isolation_forest'
+
+## clustering parameters classifier parameters
+clustering_parameters:
+  clustering_method: 'k-means'
+  batch_size: 1024
+  number_of_clusters: 2

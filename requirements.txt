@@ -7,3 +7,5 @@ pyyaml
 scikit-image
 tqdm
 scikit-learn
+plotly
+matplotlib

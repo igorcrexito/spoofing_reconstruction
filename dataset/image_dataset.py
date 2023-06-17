@@ -1,12 +1,19 @@
 import os
 import PIL.Image
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 from tensorflow import keras
+
+from descriptors.bsif_descriptor import BSIFDescriptor
+from descriptors.elbp_descriptor import ELBPDescriptor
 from descriptors.noise_descriptor import NoiseDescriptor
+from descriptors.reflectance_descriptor import ReflectanceDescriptor
+import glob
+
 
 class ImageDataset(keras.utils.Sequence):
-    def __init__(self, base_path: str, image_size: tuple, batch_size: int, input_modality: str, augmentation_list: list = [], shuffle: bool = True):
+    def __init__(self, base_path: str, image_size: tuple, batch_size: int, input_modality: str,
+                 augmentation_list: list = [], shuffle: bool = True):
         """
         Instantiates the image dataset based on the provided image path
         """
@@ -15,7 +22,7 @@ class ImageDataset(keras.utils.Sequence):
         self.batch_size = batch_size
         self.augmentation_list = augmentation_list
         self.shuffle = shuffle
-        self.list_of_images = os.listdir(self.base_path)
+        self.list_of_images = glob.glob(self.base_path)
         self.input_modality = input_modality
 
         self.on_epoch_end()
@@ -53,11 +60,11 @@ class ImageDataset(keras.utils.Sequence):
         """
         Generates data containing batch_size samples
         """
-        X = []
+        X = [] ## input data
 
         for i, image_path in enumerate(list_of_images_temp):
             # Store sample
-            image = Image.open(f"{self.base_path}/{image_path}").resize((self.image_size[0], self.image_size[1]))
+            image = Image.open(f"{image_path}").resize((self.image_size[0], self.image_size[1]))
 
             ### GENERATING DATA FOR RGB INPUT MODALITY ###
             if self.input_modality == 'rgb':
@@ -75,6 +82,43 @@ class ImageDataset(keras.utils.Sequence):
                 for augmentation in self.augmentation_list:
                     image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
                     current_image = noise_descriptor.compute_feature(image=np.array(image_augmented))
+                    X.append(self._normalize_image(current_image))
+
+            ### GENERATING DATA FOR BSIF INPUT MODALITY ###
+            elif "bsif" in self.input_modality:
+                image = ImageOps.grayscale(image)
+                bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
+                                                 base_path='../filters/texturefilters/',
+                                                 extension='.mat',
+                                                 filter_size=self.input_modality[5:])
+                current_image, _ = bsif_descriptor.compute_feature(image=np.array(image))
+                X.append(self._normalize_image(current_image))
+
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    current_image, _ = bsif_descriptor.compute_feature(image=np.array(image_augmented))
+                    X.append(self._normalize_image(current_image))
+
+            ### GENERATING DATA FOR REFLECTANCE INPUT MODALITY ###
+            elif 'reflectance' in self.input_modality:
+                reflectance_descriptor = ReflectanceDescriptor(descriptor_name='reflectance', sigma=15)
+                current_image = reflectance_descriptor.compute_feature(image=np.array(image))
+                X.append(self._normalize_image(current_image))
+
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    current_image = reflectance_descriptor.compute_feature(image=np.array(image_augmented))
+                    X.append(self._normalize_image(current_image))
+
+            ### GENERATING DATA FOR ELBP INPUT MODALITY ###
+            elif 'elbp' in self.input_modality:
+                eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
+                current_image = eblp_descriptor.compute_feature(image=np.array(image))
+                X.append(self._normalize_image(current_image))
+
+                for augmentation in self.augmentation_list:
+                    image_augmented = self._apply_augmentation(image=image, augmentation=augmentation)
+                    current_image = eblp_descriptor.compute_feature(image=np.array(image_augmented))
                     X.append(self._normalize_image(current_image))
 
         return np.array(X)
