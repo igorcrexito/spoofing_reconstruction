@@ -64,6 +64,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         """
         X = []  ## input data
 
+
         ## instantiating descriptors
         noise_descriptor = NoiseDescriptor(descriptor_name="noise_descriptor")
 
@@ -83,7 +84,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                                          filter_size='3x3_6')
 
 
-        reflectance_descriptor = ReflectanceDescriptor(descriptor_name='reflectance', sigma=15)
+        reflectance_descriptor = ReflectanceDescriptor(descriptor_name='reflectance', sigma=125)
 
         eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
 
@@ -101,7 +102,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                                        dtype=np.float16)  ## 8 is the number of output dimensions due to features
 
                 ## APPENDING RGB IMAGE
-                output_image[:, :, 0:3] = vit.preprocess_inputs(np.array(image))
+                output_image[:, :, 0:3] = self._normalize_image(vit.preprocess_inputs(np.array(image)))
 
                 ## APPENDING NOISE IMAGE
                 # current_image = noise_descriptor.compute_feature(image=np.array(image))
@@ -110,17 +111,16 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                 ### APPENDING BSIF IMAGE
                 current_image = ImageOps.grayscale(image)
                 current_image, _ = bsif_descriptor7x7.compute_feature(image=np.array(current_image))
-                output_image[:, :, 3:4] = np.reshape(self._normalize_image(current_image)[:, :, 0],
+                output_image[:, :, 3:4] = np.reshape(self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                                                      (image.width, image.height, 1))
-
                 current_image = ImageOps.grayscale(image)
                 current_image, _ = bsif_descriptor5x5.compute_feature(image=np.array(current_image))
-                output_image[:, :, 4:5] = np.reshape(self._normalize_image(current_image)[:, :, 0],
+                output_image[:, :, 4:5] = np.reshape(self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                                                      (image.width, image.height, 1))
 
                 current_image = ImageOps.grayscale(image)
                 current_image, _ = bsif_descriptor3x3.compute_feature(image=np.array(current_image))
-                output_image[:, :, 5:6] = np.reshape(self._normalize_image(current_image)[:, :, 0],
+                output_image[:, :, 5:6] = np.reshape(self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                                                      (image.width, image.height, 1))
 
                 ### GENERATING DATA FOR REFLECTANCE INPUT MODALITY ###
@@ -129,9 +129,8 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
 
                 ### GENERATING DATA FOR ELBP INPUT MODALITY ###
                 current_image = eblp_descriptor.compute_feature(image=np.array(image))
-                output_image[:, :, 9:10] = np.reshape(self._normalize_image(current_image)[:, :, 0],
+                output_image[:, :, 9:10] = np.reshape(self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                                                      (image.width, image.height, 1))
-
                 X.append(output_image)
 
         return np.array(X, dtype=np.float16)
@@ -152,21 +151,19 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         elif augmentation == 'rotate':
             return image.rotate(10, expand=False)
 
-    def _normalize_image(self, image: PIL.Image.Image):
-        """
-        Linear normalization
-        http://en.wikipedia.org/wiki/Normalization_%28image_processing%29
-        """
 
-        # image = np.array(image.convert('RGBA'))
-
+    def _normalize_image(self, image: PIL.Image.Image, number_of_channels: int = 3):
         image = np.array(image).astype('float')
 
-        for i in range(3):
-            minval = image[..., i].min()
-            maxval = image[..., i].max()
-            if minval != maxval:
-                # image[..., i] -= minval
-                image[..., i] /= maxval
+        for i in range(number_of_channels):
+            minval = image[:, :, i].min()
+
+            if minval <= 0:
+                image[:, :, i] += abs(minval)
+            else:
+                image[:, :, i] -= minval
+
+            maxval = image[:, :, i].max()
+            image[:, :, i] /= maxval
         # return Image.fromarray(image.astype('uint8'), 'RGBA')
         return image

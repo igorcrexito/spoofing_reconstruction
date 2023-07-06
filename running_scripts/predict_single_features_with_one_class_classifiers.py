@@ -6,6 +6,7 @@ import pandas as pd
 
 sys.path.insert(0, '..')
 from utils.apcer_metric import APCERMetric
+from utils.bpcer_metric import BPCERMetric
 from utils.acer_metric import ACERMetric
 from utils.false_positive_rating_metric import FPRMetric
 from utils.npcer_metric import NPCERMetric
@@ -35,24 +36,23 @@ if __name__ == '__main__':
     input_modalities = params["input_parameters"]["input_modalities"]
 
     print("Loading the PCA model used to reduce the data dimensionality")
-    compressor = load("trained_models/recod-mpad_old/pca_model.joblib")
-    #compressor = load("trained_models/tsne_model.joblib")
-
-    print("Loading the clustering model")
-    clustering_method = ClusteringMethod(method_name=params["clustering_parameters"]["clustering_method"],
-                                         number_of_clusters=params["clustering_parameters"]["number_of_clusters"],
-                                         model_path=f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
+    compressor = load(f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
 
     all_features = None
     label_list = []
     color_list = []
+
     for file in tqdm.tqdm(feature_files):
         print(f"Reading for file {file}")
         feature_file = np.genfromtxt(file, delimiter=',', dtype=np.float16, skip_header=0)
 
         if 'bonafide' in file:
-            label_list.extend([1] * feature_file.shape[0])
-            color_list.extend(['blue'] * feature_file.shape[0])
+            if 'train' in file:
+                label_list.extend([1] * feature_file.shape[0])
+                color_list.extend(['black'] * feature_file.shape[0])
+            else:
+                label_list.extend([1] * feature_file.shape[0])
+                color_list.extend(['blue'] * feature_file.shape[0])
         elif 'attack_cce' in file:
             label_list.extend([-1] * feature_file.shape[0])
             color_list.extend(["red"] * feature_file.shape[0])
@@ -80,23 +80,35 @@ if __name__ == '__main__':
                             color_list=color_list)
 
     print("Computing the cluster for each entry")
-    compressed_features = compressor.fit_transform(all_features)
-    clusters = np.array(clustering_method.model_predict(compressed_features), dtype=int)
+    compressed_features = compressor.transform(all_features)
 
     predictions = []
     label_total_list = []
+    if params["clustering_parameters"]["number_of_clusters"] > 1:
+        print("Loading the clustering model")
+        clustering_method = ClusteringMethod(method_name=params["clustering_parameters"]["clustering_method"],
+                                             number_of_clusters=params["clustering_parameters"]["number_of_clusters"],
+                                             model_path=f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
 
-    for i in range(0, params["clustering_parameters"]["number_of_clusters"]):
+        clusters = np.array(clustering_method.model_predict(compressed_features), dtype=int)
+
+        for i in range(0, params["clustering_parameters"]["number_of_clusters"]):
+            print('Loading one-class classifiers')
+            one_class_classifier = OneClassClassifier(classifier_name=params["one_class_parameters"]["classifier_name"],
+                                                      classifier_path=f'trained_models/{params["application_parameters"]["dataset"]}/one_class_{params["one_class_parameters"]["classifier_name"]}_{i}.joblib')
+
+            try:
+                indexes = np.where(clusters == i)
+                predictions.extend(list(one_class_classifier.model_predict(predict_data=all_features[indexes])))
+                label_total_list.extend(list(np.array(label_list, dtype=int)[indexes]))
+            except:
+                print(f"No data found for cluster {i}")
+    else:
         print('Loading one-class classifiers')
         one_class_classifier = OneClassClassifier(classifier_name=params["one_class_parameters"]["classifier_name"],
-                                                  classifier_path=f'trained_models/{params["application_parameters"]["dataset"]}/one_class_{params["one_class_parameters"]["classifier_name"]}_{i}.joblib')
-
-        try:
-            indexes = np.where(clusters == i)
-            predictions.extend(list(one_class_classifier.model_predict(predict_data=all_features[indexes])))
-            label_total_list.extend(list(np.array(label_list, dtype=int)[indexes]))
-        except:
-            print(f"No data found for cluster {i}")
+                                                  classifier_path=f'trained_models/{params["application_parameters"]["dataset"]}/one_class_{params["one_class_parameters"]["classifier_name"]}.joblib')
+        predictions.extend(list(one_class_classifier.model_predict(predict_data=all_features)))
+        label_total_list.extend(list(np.array(label_list, dtype=int)))
 
     correct = 0
     correct_1s = 0
@@ -116,6 +128,8 @@ if __name__ == '__main__':
 
     apcer_metric = APCERMetric(metric_name="Attack_presentation_classification_error_rate",
                                input_data=np.array(predictions), label_data=np.array(label_total_list))
+    bpcer_metric = BPCERMetric(metric_name="Bonafide_presentation_classification_error_rate",
+                               input_data=np.array(predictions), label_data=np.array(label_total_list))
     npcer_metric = NPCERMetric(metric_name="Attack_presentation_classification_error_rate",
                                input_data=np.array(predictions), label_data=np.array(label_total_list))
     acer_metric = ACERMetric(metric_name="Attack_presentation_classification_error_rate",
@@ -127,8 +141,8 @@ if __name__ == '__main__':
     frr_metric = FRRMetric(metric_name="False_rejection_rate",
                            input_data=np.array(predictions), label_data=np.array(label_total_list))
 
-
     print(f"APCER: {apcer_metric.metric_value}")
+    print(f"BPCER: {bpcer_metric.metric_value}")
     print(f"NPCER: {npcer_metric.metric_value}")
     print(f"ACER: {acer_metric.metric_value}")
     print(f"FPR (FAR): {fpr_metric.metric_value}")

@@ -18,7 +18,7 @@ class SingleAutoencoder():
         self._expansion_factor = expansion_factor
 
         if pre_trained_path is not None:
-            self.model = keras.models.load_model(pre_trained_path, custom_objects={"rmse": root_mean_squared_error})
+            self.model = keras.models.load_model(pre_trained_path, custom_objects={"root_mean_squared_error": root_mean_squared_error, 'focal_loss': focal_loss_for_regression(gamma=1.1, alpha=0.5)})
         else:
             self.model = self._create_model(summarize_model=summarize_model)
         self.partial_model = self._retrieve_partial_model(layer_name=intermediate_layer)
@@ -112,33 +112,33 @@ class SingleAutoencoder():
         x = self.inverted_residual_block(x, expanded_channels=80 * self._expansion_factor, output_channels=80, strides=2)
         x = self.mobilevit_block(x, num_blocks=3, projection_dim=96)
 
-        x = self.conv_block(x, filters=32, kernel_size=1, strides=1)
+        x = self.conv_block(x, filters=96, kernel_size=1, strides=1)
 
-        decoding = Reshape((8, 8, 32))(x)
-        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer')(decoding)
-        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer_2')(decoding)
+        decoding = Reshape((8, 8, 96))(x)
+        decoding = Conv2D(96, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer')(decoding)
+        decoding = Conv2D(96, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer_2')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up1')(decoding)
 
-        decoding = Conv2D(24, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(24, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(64, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(64, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up2')(decoding)
 
-        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(48, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(48, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up3')(decoding)
 
-        decoding = Conv2D(12, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(12, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
-        decoding = Conv2D(8, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(8, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up5')(decoding)
 
         output = Conv2D(7, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
-        autoencoder.compile(optimizer='adam', loss=focal_loss_for_regression(gamma=1.1, alpha=0.5))
+        autoencoder.compile(optimizer='adam', loss='mean_squared_error')
 
         if summarize_model:
             autoencoder.summary()
@@ -229,7 +229,6 @@ class SingleAutoencoder():
         """
 
         if layer_name != "":
-            #intermediate_output = self.model.get_layer(layer_name).output
             intermediate_output = self.model.get_layer("intermediate_layer").output
             #intermediate_output = self.model.layers[-12].output
             print(np.shape(intermediate_output))

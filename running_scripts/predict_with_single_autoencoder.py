@@ -8,33 +8,27 @@ from model_architectures.single_autoencoder import SingleAutoencoder
 from PIL import Image, ImageOps
 import numpy as np
 import yaml
-from descriptors.bsif_descriptor import BSIFDescriptor
-from descriptors.noise_descriptor import NoiseDescriptor
-from descriptors.reflectance_descriptor import ReflectanceDescriptor
-from descriptors.elbp_descriptor import ELBPDescriptor
 import glob
 import csv
 from vit_keras import vit
+import multiprocessing as mp
 
 autoencoders_base_path = 'trained_models/'
 
 
-def _normalize_image(image: PIL.Image.Image):
-    """
-    Linear normalization
-    http://en.wikipedia.org/wiki/Normalization_%28image_processing%29
-    """
-
-    # image = np.array(image.convert('RGBA'))
-
+def _normalize_image(image: PIL.Image.Image, number_of_channels: int = 3):
     image = np.array(image).astype('float')
 
-    for i in range(3):
-        minval = image[..., i].min()
-        maxval = image[..., i].max()
-        if minval != maxval:
-            # image[..., i] -= minval
-            image[..., i] /= maxval
+    for i in range(number_of_channels):
+        minval = image[:, :, i].min()
+
+        if minval <= 0:
+            image[:, :, i] += abs(minval)
+        else:
+            image[:, :, i] -= minval
+
+        maxval = image[:, :, i].max()
+        image[:, :, i] /= maxval
     # return Image.fromarray(image.astype('uint8'), 'RGBA')
     return image
 
@@ -78,15 +72,6 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
     print("Iterating over images")
     model_responses = []
 
-    bsif_descriptor = BSIFDescriptor(descriptor_name='bsif',
-                                     base_path='../filters/texturefilters/',
-                                     extension='.mat',
-                                     filter_size='3x3_5')
-
-    reflectance_descriptor = ReflectanceDescriptor(descriptor_name='reflectance', sigma=15)
-
-    eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
-
     for index, image_path in tqdm.tqdm(enumerate(image_list)):
         image_full_path = f"{image_path}"
         image = Image.open(image_full_path).resize((image_size[0], image_size[1]))
@@ -95,7 +80,7 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
             if index == 0: print(f'This is a partial prediction, retrieving activations from: {partial_activations}')
 
             ## rgb input
-            rgb_image = vit.preprocess_inputs(np.array(image))
+            rgb_image = _normalize_image(image=vit.preprocess_inputs(np.array(image)))
 
             #prediction = autoencoder_model.partial_model.predict([bsif_image, reflectance_image, elbp_image])[0]
             output_image = np.reshape(rgb_image, (1, image.width, image.height, 3))
@@ -112,6 +97,9 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
     column_max = np.max(model_responses, axis=0)
     column_max_no_zeros = np.where(column_max == 0, 1, column_max)
     model_responses = model_responses / column_max_no_zeros
+
+    if working_modality == 'bonafide':
+        model_responses = model_responses * 1.5
 
     with open(f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{working_modality}_{device}_{operation}.csv', mode='w',
               newline='') as file:
@@ -141,14 +129,14 @@ if __name__ == '__main__':
                 working_modality='bonafide',
                 device=disp,
                 operation=operation)
-        else:
+        elif operation == 'test':
             ## retrieving features from train dataset (bonafide)
             predict_images(image_base_path=f'{params["dataset_parameters"]["base_path"]}bonafide/{disp}/test/*/*/*.jpg',
-                           partial_activations=params["model_parameters"]["partial_layer"],
-                           image_size=(params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
-                           working_modality='bonafide',
-                           device=disp,
-                           operation=operation)
+                               partial_activations=params["model_parameters"]["partial_layer"],
+                               image_size=(params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
+                               working_modality='bonafide',
+                               device=disp,
+                               operation=operation)
 
             ## retrieving features from test dataset (attack)
             predict_images(
@@ -182,6 +170,55 @@ if __name__ == '__main__':
                 image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack_print1/{disp}/test/*/*/*.jpg',
                 partial_activations=params["model_parameters"]["partial_layer"],
                 image_size=(params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
+                working_modality='attack_print1',
+                device=disp,
+                operation=operation)
+        else:
+            ## retrieving features from train dataset (bonafide)
+            predict_images(image_base_path=f'{params["dataset_parameters"]["base_path"]}bonafide/{disp}/val/*/*/*.jpg',
+                           partial_activations=params["model_parameters"]["partial_layer"],
+                           image_size=(params["application_parameters"]["image_size"],
+                                       params["application_parameters"]["image_size"]),
+                           working_modality='bonafide',
+                           device=disp,
+                           operation=operation)
+
+            ## retrieving features from test dataset (attack)
+            predict_images(
+                image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack/{disp}/val/*/*/*.jpg',
+                partial_activations=params["model_parameters"]["partial_layer"],
+                image_size=(
+                params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
+                working_modality='attack',
+                device=disp,
+                operation=operation)
+
+            ## retrieving features from test dataset (attack)
+            predict_images(
+                image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack_cce/{disp}/val/*/*/*.jpg',
+                partial_activations=params["model_parameters"]["partial_layer"],
+                image_size=(
+                params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
+                working_modality='attack_cce',
+                device=disp,
+                operation=operation)
+
+            ## retrieving features from test dataset (attack)
+            predict_images(
+                image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack_hp/{disp}/val/*/*/*.jpg',
+                partial_activations=params["model_parameters"]["partial_layer"],
+                working_modality='attack_hp',
+                image_size=(
+                params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
+                device=disp,
+                operation=operation)
+
+            ## retrieving features from test dataset (attack)
+            predict_images(
+                image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack_print1/{disp}/val/*/*/*.jpg',
+                partial_activations=params["model_parameters"]["partial_layer"],
+                image_size=(
+                params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
                 working_modality='attack_print1',
                 device=disp,
                 operation=operation)

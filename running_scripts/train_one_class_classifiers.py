@@ -38,29 +38,33 @@ if __name__ == '__main__':
     print("Reading the training data files")
     ## reading the features extracted with autoencoder activations
     autoencoder_features = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_1_train.csv'), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_1_test.csv', header=None), dtype=np.float16)
     autoencoder_features2 = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_2_train.csv'), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_2_test.csv', header=None), dtype=np.float16)
 
     autoencoder_features = np.concatenate((autoencoder_features, autoencoder_features2), axis=0)
 
-    ## loading the clustering model
-    print("Loading the clustering model to perform the clustering predictions")
-    clustering_method = ClusteringMethod(method_name=params["clustering_parameters"]["clustering_method"],
-                                         number_of_clusters=params["clustering_parameters"]["number_of_clusters"],
-                                         model_path=f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
-
+    print('Reading the dimensionality reduction model and transforming features')
     ## reducing the data dimensionality and getting the clustering predictions
     compressor = load(f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
+    reduced_autoencoder_features = compressor.transform(autoencoder_features)
 
-    #compressor = load("trained_models/tsne_model.joblib")
-    reduced_autoencoder_features = compressor.fit_transform(autoencoder_features)
-    clusters = np.array(clustering_method.model_predict(reduced_autoencoder_features), dtype=int)
+    ## loading the clustering model
+    if number_of_clusters > 1:
+        print("Loading the clustering model to perform the clustering predictions")
+        clustering_method = ClusteringMethod(method_name=params["clustering_parameters"]["clustering_method"],
+                                             number_of_clusters=params["clustering_parameters"]["number_of_clusters"],
+                                             model_path=f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
 
-    ## training a one-class-classifier for each cluster
-    for i in range(0, number_of_clusters):
-        print(f'Training the model {params["one_class_parameters"]["classifier_name"]} of index {i}')
-        indexes = np.where(clusters == i)
-        train_one_class_classifier(input_dataframe=autoencoder_features[indexes],
-                                   classifier_name=params["one_class_parameters"]["classifier_name"],
-                                   classifier_index=i)
+        clusters = np.array(clustering_method.model_predict(reduced_autoencoder_features), dtype=int)
+
+        ## training a one-class-classifier for each cluster
+        for i in range(0, number_of_clusters):
+            print(f'Training the model {params["one_class_parameters"]["classifier_name"]} of index {i}')
+            indexes = np.where(clusters == i)
+            train_one_class_classifier(input_dataframe=autoencoder_features[indexes],
+                                       classifier_name=params["one_class_parameters"]["classifier_name"],
+                                       classifier_index=i)
+    else:
+        train_one_class_classifier(input_dataframe=autoencoder_features,
+                                   classifier_name=params["one_class_parameters"]["classifier_name"])

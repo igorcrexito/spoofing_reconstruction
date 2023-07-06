@@ -26,7 +26,7 @@ class Visualizer:
         else:
             compressor = self.compress_model
 
-        components = compressor.fit_transform(self.input_data)
+        components = compressor.transform(self.input_data)
         #explained_variance = compressor.explained_variance_ratio_.sum() * 100
 
         if self.color_list is None:
@@ -82,6 +82,8 @@ class Visualizer:
                 for color in self.color_list:
                     if color == 'blue':
                         color_labels.append('bonafide')
+                    elif color == 'black':
+                        color_labels.append('bonafide_train')
                     elif color == 'red':
                         color_labels.append('attack_cce')
                     elif color == 'green':

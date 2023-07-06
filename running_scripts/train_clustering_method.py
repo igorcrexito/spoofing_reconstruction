@@ -19,11 +19,11 @@ if __name__ == '__main__':
     ## reading the features extracted with autoencoder activations
     print("Reading first training file (bonafide data)")
     autoencoder_features = np.array(pd.read_csv(
-        '../outputs/recod-mpad/autoencoder_features_single_model_bonafide_disp_1_train.csv', header=None), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_1_train.csv', header=None), dtype=np.float16)
 
     print("Reading second training file (bonafide data)")
     autoencoder_features2 = np.array(pd.read_csv(
-        '../outputs/recod-mpad/autoencoder_features_single_model_bonafide_disp_2_train.csv', header=None), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_2_train.csv', header=None), dtype=np.float16)
 
     autoencoder_features = np.concatenate((autoencoder_features, autoencoder_features2), axis=0)
     np.random.shuffle(autoencoder_features)
@@ -45,9 +45,8 @@ if __name__ == '__main__':
     clustering_method.fit_model(reduced_autoencoder_features)
 
     print("Saving PCA model to be loaded later")
-    dump(compressor, 'trained_models/recod-mpad_old/pca_model.joblib')
-    #dump(compressor, 'trained_models/tsne_model.joblib')
+    dump(compressor, f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
 
     print("Saving the model in the disk")
-    dump(clustering_method.model, f'trained_models/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
+    dump(clustering_method.model, f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
     print(f'Clustering method {clustering_method} is trained')

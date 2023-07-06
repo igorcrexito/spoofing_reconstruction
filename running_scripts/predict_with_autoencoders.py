@@ -199,7 +199,7 @@ if __name__ == '__main__':
                            working_modality='bonafide',
                            device=disp,
                            operation=operation)
-
+            '''
             ## retrieving features from test dataset (attack)
             predict_images(image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/attack/{disp}/test/*/*/*.jpg',
                            input_modality_list=input_modalities,
@@ -231,3 +231,4 @@ if __name__ == '__main__':
                            working_modality='attack_print1',
                            device=disp,
                            operation=operation)
+            '''

@@ -1,6 +1,6 @@
 import numpy as np
 from joblib import load
-from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.cluster import MiniBatchKMeans, KMeans, DBSCAN, SpectralClustering
 
 class ClusteringMethod:
 
@@ -36,9 +36,26 @@ class ClusteringMethod:
         Method to perform the predictions
         """
         if self.model is not None:
-            return self.model.predict(predict_data)
+            if self.method_name == 'k-means':
+                return self.model.predict(predict_data)
+            else:
+                return self.model.labels_.astype(np.int16)
         else:
             return None
+
+    def dbscan_predict(self, X):
+        nr_samples = X.shape[0]
+        y_new = np.ones(shape=nr_samples, dtype=int) * -1
+
+        for i in range(nr_samples):
+            diff = self.model.components_ - X[i, :]  # NumPy broadcasting
+            dist = np.linalg.norm(diff, axis=1)  # Euclidean distance
+            shortest_dist_idx = np.argmin(dist)
+
+            if dist[shortest_dist_idx] < self.model.eps:
+                y_new[i] = self.model.labels_[self.model.core_sample_indices_[shortest_dist_idx]]
+
+        return y_new
 
     @classmethod
     def _instantiate_method(cls, method_name: str, number_of_clusters: int):
@@ -48,6 +65,11 @@ class ClusteringMethod:
         if method_name == 'k-means':
             #model = MiniBatchKMeans(n_clusters=number_of_clusters, random_state=0, batch_size=1024, n_init="auto")
             model = KMeans(n_clusters=number_of_clusters, random_state=0, n_init="auto")
+        elif method_name == 'dbscan':
+            model = DBSCAN(eps=3, min_samples=2)
+        elif method_name == 'spectral_clustering':
+            model = SpectralClustering(n_clusters=number_of_clusters, random_state=42, assign_labels='discretize',
+                                       eigen_solver='arpack', affinity='nearest_neighbors')
         else:
             model = None
 
