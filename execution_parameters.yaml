@@ -24,7 +24,7 @@ model_parameters:
 
 ## visualization parameters
 visualization_parameters:
-  compress_method: "pca"
+  compress_method: "tda"
   number_of_dimensions: 3
   visualize_features: True
 

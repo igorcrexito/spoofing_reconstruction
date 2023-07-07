@@ -7,6 +7,7 @@ from model_architectures.clustering_method import ClusteringMethod
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from ripser import ripser
 
 from joblib import dump
 
@@ -38,15 +39,24 @@ if __name__ == '__main__':
                                          number_of_clusters=params["clustering_parameters"]["number_of_clusters"])
 
     print("Training the model - Keep in mind that clustering methods do not perform well in very high dimensionality data")
-    compressor = PCA(n_components=params["visualization_parameters"]["number_of_dimensions"])
 
-    #compressor = TSNE(n_components=params["visualization_parameters"]["number_of_dimensions"], random_state=42)
+    compression_method = params['visualization_parameters']['compress_method']
+    if compression_method == 'pca' or compression_method =='tda':
+        compressor = PCA(n_components=params["visualization_parameters"]["number_of_dimensions"])
+    elif compression_method == 'tsne':
+        compressor = TSNE(n_components=params["visualization_parameters"]["number_of_dimensions"], random_state=42)
+
     reduced_autoencoder_features = compressor.fit_transform(autoencoder_features)
+
+    if compression_method == 'tda':
+        diagrams = ripser(autoencoder_features, maxdim=0)['dgms']
+
+    ## TODO -- ripser not working yet
     clustering_method.fit_model(reduced_autoencoder_features)
 
     print("Saving PCA model to be loaded later")
-    dump(compressor, f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
+    #dump(compressor, f'trained_models/{params["application_parameters"]["dataset"]}/{compression_method}_model.joblib')
 
     print("Saving the model in the disk")
-    dump(clustering_method.model, f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
+    #dump(clustering_method.model, f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
     print(f'Clustering method {clustering_method} is trained')
