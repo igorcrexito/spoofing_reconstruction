@@ -49,7 +49,7 @@ if __name__ == '__main__':
     reduced_autoencoder_features = compressor.fit_transform(autoencoder_features)
 
     if compression_method == 'tda':
-        diagrams = ripser(autoencoder_features, maxdim=0)['dgms']
+        diagrams = ripser(reduced_autoencoder_features, maxdim=0)['dgms']
 
     ## TODO -- ripser not working yet
     clustering_method.fit_model(reduced_autoencoder_features)
