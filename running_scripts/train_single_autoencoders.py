@@ -11,9 +11,9 @@ if __name__ == '__main__':
     with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
-    dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/*/train/*/*/*.jpg'
-    validation_dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/*/' \
-                                   f'/train/*/*/*.jpg'
+    dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/train/*/'
+    validation_dataset_base_path = f'{params["dataset_parameters"]["base_path"]}bonafide/' \
+                                   f'/val/*/'
 
     print("Creating a database based on the specified base path and input modality")
     if params["prediction_parameters"]["model_pretrain"]:

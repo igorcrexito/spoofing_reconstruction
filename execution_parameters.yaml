@@ -2,12 +2,12 @@
 application_parameters:
   image_size: 256
   plot_reconstruction: False
-  dataset: 'recod-mpad' ##swax or recod-mpad
+  dataset: 'hq_wmca' ##swax or recod-mpad
 
 ## dataset parameters
 dataset_parameters:
-  base_path: '../../recod-mpad/'
-  execution_mode: 'val'
+  base_path: '../../hq_wmca/'
+  execution_mode: 'train'
 
 ## input modalities/transformations
 input_parameters:
@@ -17,20 +17,20 @@ input_parameters:
 
 ## model parameters
 model_parameters:
-  number_of_epochs: 50
-  learning_rate: 0.0025
-  batch_size: 15
+  number_of_epochs: 150
+  learning_rate: 0.001
+  batch_size: 5
   partial_layer: "intermediate_layer" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
 
 ## visualization parameters
 visualization_parameters:
-  compress_method: "tda"
+  compress_method: "pca"
   number_of_dimensions: 3
   visualize_features: True
 
 ## prediction parameters
 prediction_parameters:
-  model_pretrain: True
+  model_pretrain: False
   features_to_predict: ['elbp', 'reflectance', 'bsif_7x7_5'] ## must be the ones into the input modalities
 
 ## one-class classifier parameters

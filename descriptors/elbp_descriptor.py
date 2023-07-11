@@ -13,15 +13,12 @@ class ELBPDescriptor(ImageDescriptor):
         self.method = method
 
     def compute_feature(self, image: np.ndarray):
-        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
         height, width = image.shape
 
-        elbp_image_final = np.ones((height, width, 3), dtype=np.uint8)
+        elbp_image_final = np.ones((height, width, 1), dtype=np.uint8)
 
         lbp = local_binary_pattern(image, self.neighbors, self.radius, self.method)*255
         elbp_image_final[:, :, 0] = lbp
-        elbp_image_final[:, :, 1] = lbp
-        elbp_image_final[:, :, 2] = lbp
         return elbp_image_final
 
     def _compute_feature(self, image: np.ndarray):

@@ -10,8 +10,10 @@ class ReflectanceDescriptor(ImageDescriptor):
         super().__init__(descriptor_name)
         self.sigma = sigma
 
-    def compute_feature(self, image: np.ndarray):
-        image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    def compute_feature(self, image: np.ndarray, num_channels=3):
+
+        if num_channels == 3:
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         image = cv2.normalize(image, None, 0, 1.0, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         channels = cv2.split(image)
         retinex_channels = []

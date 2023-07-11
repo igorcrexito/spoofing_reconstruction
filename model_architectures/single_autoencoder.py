@@ -87,7 +87,7 @@ class SingleAutoencoder():
 
 
     def _create_model(self, summarize_model: bool = False):
-        model_input = Input((self._input_dimension, self._input_dimension, 3))
+        model_input = Input((self._input_dimension, self._input_dimension, 43))
         x = Rescaling(scale=1.0/255)(model_input)
 
         ## initial conv-stem -> MV2 block
@@ -135,7 +135,7 @@ class SingleAutoencoder():
         decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up5')(decoding)
 
-        output = Conv2D(7, (3, 3), activation='relu', padding='same')(decoding)
+        output = Conv2D(5, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')
@@ -200,7 +200,7 @@ class SingleAutoencoder():
         decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
         output = Conv2D(5, (3, 3), activation='relu', padding='same')(decoding)
-        ## RGB - 3, Reflectance - 3, LBP - 1, BSIF - 1, noise - 3
+        ## BSIF - 3, Reflectance - 1, LBP - 1
 
         autoencoder = Model([model_input, model_input2, model_input3], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')
