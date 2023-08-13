@@ -18,15 +18,10 @@ if __name__ == '__main__':
         params = yaml.full_load(f)
 
     ## reading the features extracted with autoencoder activations
-    print("Reading first training file (bonafide data)")
+    print("Reading training file (bonafide data)")
     autoencoder_features = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_1_train.csv', header=None), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
 
-    print("Reading second training file (bonafide data)")
-    autoencoder_features2 = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_2_train.csv', header=None), dtype=np.float16)
-
-    autoencoder_features = np.concatenate((autoencoder_features, autoencoder_features2), axis=0)
     np.random.shuffle(autoencoder_features)
 
     ## invoking the method to train the one-class classifiers
@@ -41,22 +36,18 @@ if __name__ == '__main__':
     print("Training the model - Keep in mind that clustering methods do not perform well in very high dimensionality data")
 
     compression_method = params['visualization_parameters']['compress_method']
-    if compression_method == 'pca' or compression_method =='tda':
+    if compression_method == 'pca':
         compressor = PCA(n_components=params["visualization_parameters"]["number_of_dimensions"])
     elif compression_method == 'tsne':
         compressor = TSNE(n_components=params["visualization_parameters"]["number_of_dimensions"], random_state=42)
 
     reduced_autoencoder_features = compressor.fit_transform(autoencoder_features)
 
-    if compression_method == 'tda':
-        diagrams = ripser(reduced_autoencoder_features, maxdim=0)['dgms']
-
-    ## TODO -- ripser not working yet
     clustering_method.fit_model(reduced_autoencoder_features)
 
     print("Saving PCA model to be loaded later")
-    #dump(compressor, f'trained_models/{params["application_parameters"]["dataset"]}/{compression_method}_model.joblib')
+    dump(compressor, f'trained_models/{params["application_parameters"]["dataset"]}/{compression_method}_model.joblib')
 
     print("Saving the model in the disk")
-    #dump(clustering_method.model, f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
+    dump(clustering_method.model, f'trained_models/{params["application_parameters"]["dataset"]}/clustering_model_{params["clustering_parameters"]["clustering_method"]}.joblib')
     print(f'Clustering method {clustering_method} is trained')

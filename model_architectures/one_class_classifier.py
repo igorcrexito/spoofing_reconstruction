@@ -41,7 +41,7 @@ class OneClassClassifier:
         if classifier_name == 'svm':
             classifier = OneClassSVM(gamma=0.1, kernel='linear', nu=0.1)
         elif classifier_name == 'isolation_forest':
-            classifier = IsolationForest(contamination=0.138, random_state=42)
+            classifier = IsolationForest(contamination=0.0198, random_state=42)
         elif classifier_name == 'mcd':
             classifier = EllipticEnvelope(contamination=0.1, random_state=42, support_fraction=0.1)
         else:

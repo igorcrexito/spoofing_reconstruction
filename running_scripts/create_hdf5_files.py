@@ -31,6 +31,7 @@ def read_and_process_videos_hdf5(list_of_videos, protocol_file, num_samples, res
     '''
 
     incorrect_files = 0
+    number_of_frames_list = []
 
     for file_path in list_of_videos:
 
@@ -65,6 +66,7 @@ def read_and_process_videos_hdf5(list_of_videos, protocol_file, num_samples, res
                 group_names = list(root_group.keys())
                 group_names = [x for x in group_names if 'Frame_' in x]
 
+                number_of_frames_list.append(len(group_names))
                 ## retrieving first frame of the video for every channel
                 group = root_group[group_names[0]]
 
@@ -88,6 +90,10 @@ def read_and_process_videos_hdf5(list_of_videos, protocol_file, num_samples, res
         except:
             print(f'Incorrect files: {incorrect_files}. This file is not in the protocol: {file_path}')
             incorrect_files = incorrect_files + 1
+
+    dataframe = pd.DataFrame(number_of_frames_list, columns=['number_of_frames'])
+    print(dataframe.value_counts())
+    __import__("IPython").embed()
 
 
 if __name__ == '__main__':

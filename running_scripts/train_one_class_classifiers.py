@@ -38,11 +38,7 @@ if __name__ == '__main__':
     print("Reading the training data files")
     ## reading the features extracted with autoencoder activations
     autoencoder_features = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_1_test.csv', header=None), dtype=np.float16)
-    autoencoder_features2 = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_disp_2_test.csv', header=None), dtype=np.float16)
-
-    autoencoder_features = np.concatenate((autoencoder_features, autoencoder_features2), axis=0)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
 
     print('Reading the dimensionality reduction model and transforming features')
     ## reducing the data dimensionality and getting the clustering predictions

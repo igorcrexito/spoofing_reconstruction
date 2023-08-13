@@ -47,7 +47,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         image_batch = self.__data_generation(list_of_images_temp)
 
         ## returning each image separately
-        return image_batch[:, :, :, 0:43], image_batch[:, :, :, 43:48]
+        return image_batch[:, :, :, 0:43], image_batch[:, :, :, 0:48]
 
     def on_epoch_end(self):
         """
@@ -89,7 +89,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
 
             # Store sample
             for channel in range(0, 43):
-                image = Image.open(f"{image_path}0.png").resize((self.image_size[0], self.image_size[1]))
+                image = Image.open(f"{image_path}{channel}.png").resize((self.image_size[0], self.image_size[1]))
                 image_struct.append(image)
 
             ## list storing images and augmentated images

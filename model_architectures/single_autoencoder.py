@@ -91,12 +91,12 @@ class SingleAutoencoder():
         x = Rescaling(scale=1.0/255)(model_input)
 
         ## initial conv-stem -> MV2 block
-        x = self.conv_block(x, filters=16)
-        x = self.inverted_residual_block(x, expanded_channels=16*self._expansion_factor, output_channels=16)
+        x = self.conv_block(x, filters=24)
+        x = self.inverted_residual_block(x, expanded_channels=16*self._expansion_factor, output_channels=24)
 
         ## Downsampling with MV2 block
 
-        x = self.inverted_residual_block(x, expanded_channels=16 * self._expansion_factor, output_channels=24, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24, strides=2)
         x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24)
         x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24)
 
@@ -112,30 +112,30 @@ class SingleAutoencoder():
         x = self.inverted_residual_block(x, expanded_channels=80 * self._expansion_factor, output_channels=80, strides=2)
         x = self.mobilevit_block(x, num_blocks=3, projection_dim=96)
 
-        x = self.conv_block(x, filters=96, kernel_size=1, strides=1)
+        x = self.conv_block(x, filters=128, kernel_size=1, strides=1)
 
-        decoding = Reshape((8, 8, 96))(x)
-        decoding = Conv2D(96, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer')(decoding)
-        decoding = Conv2D(96, (3, 3), activation=tf.nn.swish, padding='same', name='intermediate_layer_2')(decoding)
+        decoding = Reshape((8, 8, 128))(x)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer_2')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up1')(decoding)
 
-        decoding = Conv2D(64, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(64, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer_3')(decoding)
+        decoding = Conv2D(128, (3, 3), activation='relu', padding='same', name='intermediate_layer_4')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up2')(decoding)
 
-        decoding = Conv2D(48, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(48, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
+        decoding = Conv2D(64, (3, 3), activation='relu', padding='same', name='intermediate_layer_5')(decoding)
+        decoding = Conv2D(64, (3, 3), activation='relu', padding='same', name='intermediate_layer_6')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up3')(decoding)
 
-        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(32, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
+        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_7')(decoding)
+        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_8')(decoding)
+        #decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
-        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = Conv2D(16, (3, 3), activation=tf.nn.swish, padding='same')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up5')(decoding)
+        decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_9')(decoding)
+        decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_10')(decoding)
+        decoding = UpSampling2D(size=(4, 4), name='up5')(decoding)
 
-        output = Conv2D(5, (3, 3), activation='relu', padding='same')(decoding)
+        output = Conv2D(48, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')
@@ -229,7 +229,7 @@ class SingleAutoencoder():
         """
 
         if layer_name != "":
-            intermediate_output = self.model.get_layer("intermediate_layer").output
+            intermediate_output = self.model.get_layer(layer_name).output
             #intermediate_output = self.model.layers[-12].output
             print(np.shape(intermediate_output))
             intermediate_model = Model(self.model.input, outputs=[intermediate_output])

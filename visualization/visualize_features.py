@@ -26,7 +26,10 @@ class Visualizer:
         else:
             compressor = self.compress_model
 
-        components = compressor.transform(self.input_data)
+        try:
+            components = compressor.transform(self.input_data)
+        except:
+            components = compressor.fit_transform(self.input_data)
         #explained_variance = compressor.explained_variance_ratio_.sum() * 100
 
         if self.color_list is None:
@@ -82,16 +85,26 @@ class Visualizer:
                 for color in self.color_list:
                     if color == 'blue':
                         color_labels.append('bonafide')
-                    elif color == 'black':
-                        color_labels.append('bonafide_train')
                     elif color == 'red':
-                        color_labels.append('attack_cce')
+                        color_labels.append('attack_glasses')
                     elif color == 'green':
-                        color_labels.append('attack_hp')
-                    elif color == 'purple':
-                        color_labels.append('attack_disp')
-                    elif color == 'yellow':
                         color_labels.append('attack_print')
+                    elif color == 'purple':
+                        color_labels.append('attack_mannequin')
+                    elif color == 'yellow':
+                        color_labels.append('attack_replay')
+                    elif color == 'orange':
+                        color_labels.append('attack_rigid_mask')
+                    elif color == 'gray':
+                        color_labels.append('attack_flexible_mask')
+                    elif color == 'black':
+                        color_labels.append('attack_paper_mask')
+                    elif color == 'pink':
+                        color_labels.append('attack_wigs')
+                    elif color == 'cyan':
+                        color_labels.append('attack_tattoo')
+                    elif color == 'magenta':
+                        color_labels.append('attack_makeup')
 
                 fig = px.scatter_3d(
                     components,
