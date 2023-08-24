@@ -34,6 +34,11 @@ if __name__ == '__main__':
     all_features = None
     label_list = []
     color_list = []
+
+    ## temporary filter just to check the performance for each class
+    #class_filter = 'glasses'
+    #feature_files = [x for x in feature_files if class_filter in x]
+
     for file in tqdm.tqdm(feature_files):
         feature_file = np.genfromtxt(file, delimiter=',', dtype=np.float16,)
 
