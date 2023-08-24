@@ -23,12 +23,7 @@ if __name__ == '__main__':
         f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
 
     np.random.shuffle(autoencoder_features)
-
     ## invoking the method to train the one-class classifiers
-    print('Training clustering method')
-    batch_size = params["clustering_parameters"]["batch_size"]
-    number_of_iterations = int(np.shape(autoencoder_features)[0]/batch_size)
-
     print("Instantiating the model")
     clustering_method = ClusteringMethod(method_name=params["clustering_parameters"]["clustering_method"],
                                          number_of_clusters=params["clustering_parameters"]["number_of_clusters"])

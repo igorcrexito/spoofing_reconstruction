@@ -2,11 +2,11 @@
 application_parameters:
   image_size: 256
   plot_reconstruction: False
-  dataset: 'hq_wmca' ##swax or recod-mpad
+  dataset: 'hq_wmca_rgb' ##swax or recod-mpad
 
 ## dataset parameters
 dataset_parameters:
-  base_path: '../../hq_wmca/'
+  base_path: '../../hq_wmca_rgb/'
   execution_mode: 'val'
 
 ## input modalities/transformations
@@ -18,7 +18,7 @@ input_parameters:
 ## model parameters
 model_parameters:
   number_of_epochs: 500
-  learning_rate: 0.001
+  learning_rate: 0.0015
   batch_size: 3
   partial_layer: "intermediate_layer_10" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
 

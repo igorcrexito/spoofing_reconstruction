@@ -29,8 +29,9 @@ def _normalize_image(image: PIL.Image.Image, number_of_channels: int = 3):
 
         maxval = image[:, :, i].max()
         image[:, :, i] /= maxval
-
+    # return Image.fromarray(image.astype('uint8'), 'RGBA')
     return image
+
 
 
 def predict_image_class(image: PIL.Image.Image, autoencoder_list: list, class_dictionary: dict):
@@ -67,40 +68,25 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
                                           summarize_model=False,
                                           intermediate_layer=partial_activations)
 
-    autoencoder_model2 = SingleAutoencoder(input_dimension=image_size[0],
-                                          summarize_model=False,
-                                          intermediate_layer='intermediate_layer_2')
-
     autoencoder_model.model.load_weights(f'trained_models/{params["application_parameters"]["dataset"]}/best_autoencoder_single_autoencoder.hdf5')
-    autoencoder_model2.model.load_weights(f'trained_models/{params["application_parameters"]["dataset"]}/best_autoencoder_single_autoencoder.hdf5')
 
     print("Iterating over images")
     model_responses = []
 
     for index, image_path in tqdm.tqdm(enumerate(image_list)):
-
-        image_struct = []
-        for channel in range(0, 43):
-            image = Image.open(f"{image_path}{channel}.png")
-            image_struct.append(image)
-
-        image_struct = np.stack(image_struct, axis=-1)
+        image_full_path = f"{image_path}"
+        image = Image.open(image_full_path + '0.png').resize((image_size[0], image_size[1]))
 
         if partial_activations != "":
             if index == 0: print(f'This is a partial prediction, retrieving activations from: {partial_activations}')
 
             ## rgb input
-            rgb_image = _normalize_image(image=image_struct, number_of_channels=43)
+            rgb_image = _normalize_image(image=vit.preprocess_inputs(np.array(image)))
 
             #prediction = autoencoder_model.partial_model.predict([bsif_image, reflectance_image, elbp_image])[0]
-            output_image = np.reshape(rgb_image, (1, image.width, image.height, 43))
+            output_image = np.reshape(rgb_image, (1, image.width, image.height, 3))
             prediction = autoencoder_model.partial_model.predict([output_image])
-            #prediction2 = autoencoder_model2.partial_model.predict([output_image])
-
             prediction = np.array(prediction, dtype=np.float16).flatten()
-            #prediction2 = np.array(prediction2, dtype=np.float16).flatten()
-
-            #prediction = np.concatenate([prediction, prediction2])
 
             ## storing the predictions into a list
             model_responses.append(prediction)
@@ -108,19 +94,25 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
             ## this is going to be implemented soon - TODO
             pass
 
-    ## normalizing data by column
-    if len(model_responses) > 0:
+    try:
+        ## normalizing data by column
         column_max = np.max(model_responses, axis=0)
         column_max_no_zeros = np.where(column_max == 0, 1, column_max)
         model_responses = model_responses / column_max_no_zeros
+
+        if working_modality == 'bonafide':
+            model_responses = model_responses*0.95
 
         with open(f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{working_modality}_{operation}.csv', mode='w',
                   newline='') as file:
             writer = csv.writer(file)
             for row in model_responses:
                 writer.writerow(row)
+    except:
+        print('The array is not valid')
 
     print("Activation file is written !")
+
 
 
 if __name__ == '__main__':

@@ -87,21 +87,21 @@ class SingleAutoencoder():
 
 
     def _create_model(self, summarize_model: bool = False):
-        model_input = Input((self._input_dimension, self._input_dimension, 43))
+        model_input = Input((self._input_dimension, self._input_dimension, 3))
         x = Rescaling(scale=1.0/255)(model_input)
 
         ## initial conv-stem -> MV2 block
-        x = self.conv_block(x, filters=24)
-        x = self.inverted_residual_block(x, expanded_channels=16*self._expansion_factor, output_channels=24)
+        x = self.conv_block(x, filters=32)
+        x = self.inverted_residual_block(x, expanded_channels=16*self._expansion_factor, output_channels=32)
 
         ## Downsampling with MV2 block
 
-        x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24, strides=2)
-        x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24)
-        x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=24)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32)
 
         ## First MV2 -> MobileViT block
-        x = self.inverted_residual_block(x, expanded_channels=24 * self._expansion_factor, output_channels=48, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=64, strides=2)
         x = self.mobilevit_block(x, num_blocks=2, projection_dim=64)
 
         ## Second MV2 -> MobileViT block
@@ -110,7 +110,7 @@ class SingleAutoencoder():
 
         ## Second MV2 -> MobileViT block
         x = self.inverted_residual_block(x, expanded_channels=80 * self._expansion_factor, output_channels=80, strides=2)
-        x = self.mobilevit_block(x, num_blocks=3, projection_dim=96)
+        x = self.mobilevit_block(x, num_blocks=3, projection_dim=128)
 
         x = self.conv_block(x, filters=128, kernel_size=1, strides=1)
 
@@ -127,15 +127,15 @@ class SingleAutoencoder():
         decoding = Conv2D(64, (3, 3), activation='relu', padding='same', name='intermediate_layer_6')(decoding)
         decoding = UpSampling2D(size=(2, 2), name='up3')(decoding)
 
-        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_7')(decoding)
-        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_8')(decoding)
+        decoding = Conv2D(48, (3, 3), activation='relu', padding='same', name='intermediate_layer_7')(decoding)
+        decoding = Conv2D(48, (3, 3), activation='relu', padding='same', name='intermediate_layer_8')(decoding)
         #decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
         decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_9')(decoding)
         decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_10')(decoding)
         decoding = UpSampling2D(size=(4, 4), name='up5')(decoding)
 
-        output = Conv2D(48, (3, 3), activation='relu', padding='same')(decoding)
+        output = Conv2D(7, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')
@@ -145,72 +145,9 @@ class SingleAutoencoder():
 
         return autoencoder
 
-    def _create_model2(self, summarize_model: bool = False):
-        # defining the model inputs
-        model_input = Input(shape=(self._input_dimension, self._input_dimension, 1), name='input_bsif')
-        model_input2 = Input(shape=(self._input_dimension, self._input_dimension, 3), name='input_reflectance')
-        model_input3 = Input(shape=(self._input_dimension, self._input_dimension, 1), name='input_elbp')
-
-        ## first input
-        encoding1 = Conv2D(8, (3, 3), activation='relu', padding='same')(model_input)
-        encoding1 = Conv2D(8, (3, 3), activation='relu', padding='same')(encoding1)
-        encoding1 = LayerNormalization()(encoding1)
-
-        ## second input
-        encoding2 = Conv2D(8, (3, 3), activation='relu', padding='same')(model_input2)
-        encoding2 = Conv2D(8, (3, 3), activation='relu', padding='same')(encoding2)
-        encoding2 = LayerNormalization()(encoding2)
-
-        ## third input
-        encoding3 = Conv2D(8, (3, 3), activation='relu', padding='same')(model_input3)
-        encoding3 = Conv2D(8, (3, 3), activation='relu', padding='same')(encoding3)
-        encoding3 = LayerNormalization()(encoding3)
-
-        encoding = Concatenate()([encoding1, encoding2, encoding3])
-        encoding = MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', name='pool_full')(encoding)
-
-        encoding = Conv2D(32, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = Conv2D(32, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = MaxPooling2D(pool_size=(4, 4), strides=(4, 4), padding='same', name='pool1')(encoding)
-
-        # encoding input into a higher level representation - 1st group
-        encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
-        encoding = MaxPooling2D(pool_size=(4, 4), strides=(4, 4), padding='same', name='pool4')(encoding)
-
-        encoding = ZeroPadding2D(padding=(3, 3))(encoding)
-        encoding = LocallyConnected2D(256, (7, 7), activation='relu', padding='valid')(encoding)
-
-        encoding = Flatten()(encoding)
-        encoding = Dense(256, activation='sigmoid', name='intermediate_layer')(encoding)
-        encoding = Reshape((1, 1, 256))(encoding)
-
-        encoding = UpSampling2D(size=(7, 7), name='up_intermediate')(encoding)
-
-        # decoding step -> getting back to original representation
-        decoding = Conv2D(128, (3, 3), activation='relu', padding='same')(encoding)
-        decoding = UpSampling2D(size=(4, 4), name='up1')(decoding)
-
-        decoding = Conv2D(64, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = Conv2D(64, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = UpSampling2D(size=(4, 4), name='up3')(decoding)
-
-        decoding = Conv2D(32, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = Conv2D(8, (3, 3), activation='relu', padding='same')(decoding)
-        decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
-
-        output = Conv2D(5, (3, 3), activation='relu', padding='same')(decoding)
-        ## BSIF - 3, Reflectance - 1, LBP - 1
-
-        autoencoder = Model([model_input, model_input2, model_input3], [output])
-        autoencoder.compile(optimizer='adam', loss='mean_squared_error')
-
-        if summarize_model:
-            autoencoder.summary()
-
-        return autoencoder
 
     def fit_model(self, input_data: np.ndarray, validation_data: np.ndarray, number_of_epochs: int, dataset: str):
+
         checkpoint = tf.keras.callbacks.ModelCheckpoint(f'trained_models/{dataset}/best_autoencoder_single_autoencoder.hdf5',
                                                         monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 

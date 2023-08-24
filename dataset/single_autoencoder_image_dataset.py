@@ -47,7 +47,7 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         image_batch = self.__data_generation(list_of_images_temp)
 
         ## returning each image separately
-        return image_batch[:, :, :, 0:43], image_batch[:, :, :, 0:48]
+        return image_batch[:, :, :, 0:3], image_batch[:, :, :, 3:]
 
     def on_epoch_end(self):
         """
@@ -64,6 +64,8 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         X = []  ## input data
 
         ## instantiating descriptors
+        noise_descriptor = NoiseDescriptor(descriptor_name="noise_descriptor")
+
         bsif_descriptor7x7 = BSIFDescriptor(descriptor_name='bsif',
                                             base_path='../filters/texturefilters/',
                                             extension='.mat',
@@ -84,65 +86,72 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
         eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
 
         for i, image_path in enumerate(list_of_images_temp):
-
-            image_struct = []
-
             # Store sample
-            for channel in range(0, 43):
-                image = Image.open(f"{image_path}{channel}.png").resize((self.image_size[0], self.image_size[1]))
-                image_struct.append(image)
+            original_image = Image.open(f"{image_path}/0.png").resize((self.image_size[0], self.image_size[1]))
 
             ## list storing images and augmentated images
-            augmentation_images = [image_struct]
+            augmentation_images = [original_image]
             for augmentation in self.augmentation_list:
-                augmentation_images.append(
-                    self._apply_augmentation(image_channels=image_struct, augmentation=augmentation))
+                augmentation_images.append(self._apply_augmentation(image=original_image, augmentation=augmentation))
 
             for image in augmentation_images:
-                image = np.stack(image, axis=-1)
-                output_image = np.ones((self.image_size[0], self.image_size[1], 48),
-                                       dtype=np.float16)  ## 43 + BSIFs (3) + Reflectance (1) + LBP (1)
-                ## is the number of output dimensions due to features
+                output_image = np.ones((image.width, image.height, 10),
+                                       dtype=np.float16)  ## 8 is the number of output dimensions due to features
 
                 ## APPENDING RGB IMAGE
-                output_image[:, :, :43] = self._normalize_image(image=image[:, :, :43], number_of_channels=43)
+                output_image[:, :, 0:3] = self._normalize_image(vit.preprocess_inputs(np.array(image)))
+
+                ## APPENDING NOISE IMAGE
+                # current_image = noise_descriptor.compute_feature(image=np.array(image))
+                # output_image[:, :, 3:6] = self._normalize_image(current_image)
 
                 ### APPENDING BSIF IMAGE
-                original_grayscale = image[:, :, 0]
+                current_image = ImageOps.grayscale(image)
+                current_image, _ = bsif_descriptor7x7.compute_feature(image=np.array(current_image))
+                output_image[:, :, 3:4] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
 
-                current_image, _ = bsif_descriptor7x7.compute_feature(image=original_grayscale)
-                current_image = np.reshape(current_image[:, :, 0], (self.image_size[0], self.image_size[1], 1))
-                output_image[:, :, 43:44] = self._normalize_image(current_image, number_of_channels=1)
+                current_image = ImageOps.grayscale(image)
+                current_image, _ = bsif_descriptor5x5.compute_feature(image=np.array(current_image))
+                output_image[:, :, 4:5] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
 
-                current_image, _ = bsif_descriptor5x5.compute_feature(image=original_grayscale)
-                current_image = np.reshape(current_image[:, :, 0], (self.image_size[0], self.image_size[1], 1))
-                output_image[:, :, 44:45] = self._normalize_image(current_image, number_of_channels=1)
-
-                current_image, _ = bsif_descriptor3x3.compute_feature(image=original_grayscale)
-                current_image = np.reshape(current_image[:, :, 0], (self.image_size[0], self.image_size[1], 1))
-                output_image[:, :, 45:46] = self._normalize_image(current_image, number_of_channels=1)
+                current_image = ImageOps.grayscale(image)
+                current_image, _ = bsif_descriptor3x3.compute_feature(image=np.array(current_image))
+                output_image[:, :, 5:6] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
 
                 ### GENERATING DATA FOR REFLECTANCE INPUT MODALITY ###
-                current_image = reflectance_descriptor.compute_feature(image=original_grayscale, num_channels=1)
-                current_image = np.reshape(current_image, (self.image_size[0], self.image_size[1], 1))
-                output_image[:, :, 46:47] = self._normalize_image(current_image, number_of_channels=1)
+                current_image = reflectance_descriptor.compute_feature(image=np.array(image))
+                output_image[:, :, 6:9] = self._normalize_image(current_image)
 
-                current_image = eblp_descriptor.compute_feature(image=original_grayscale)
-                output_image[:, :, 47:48] = self._normalize_image(current_image, number_of_channels=1)
-
+                ### GENERATING DATA FOR ELBP INPUT MODALITY ###
+                current_image = ImageOps.grayscale(image)
+                current_image = eblp_descriptor.compute_feature(image=np.array(current_image))
+                output_image[:, :, 9:10] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
                 X.append(output_image)
 
         return np.array(X, dtype=np.float16)
 
-    def _apply_augmentation(self, image_channels: List, augmentation: str):
+    def _apply_augmentation(self, image: PIL.Image.Image, augmentation: str):
         """
         Apply augmentation depending on the provided string
         """
         if augmentation == 'flip':
-            for index, channel in enumerate(image_channels):
-                image_channels[index] = channel.transpose(Image.FLIP_LEFT_RIGHT)
-
-        return image_channels
+            return image.transpose(Image.FLIP_LEFT_RIGHT)
+        elif augmentation == 'zoom':
+            height = image.size[0]
+            width = image.size[1]
+            return image.crop(
+                (int(height * 0.1), int(width * 0.1), height - (int(height * 0.1)), width - (int(width * 0.1)))).resize(
+                (height, width))
+        elif augmentation == 'rotate':
+            return image.rotate(10, expand=False)
 
     def _normalize_image(self, image: PIL.Image.Image, number_of_channels: int = 3):
         image = np.array(image).astype('float')

@@ -34,8 +34,14 @@ if __name__ == '__main__':
     all_features = None
     label_list = []
     color_list = []
+
+    ## optional filter class to check the behavior of each class
+    filter_class = 'makeup'
+    feature_files = [x for x in feature_files if filter_class in x]
+
     for file in tqdm.tqdm(feature_files):
         feature_file = np.genfromtxt(file, delimiter=',', dtype=np.float16,)
+        print(f'the number of entries is: {feature_file.shape[0]}')
 
         if 'bonafide' in file:
             label_list.extend([1] * feature_file.shape[0])
