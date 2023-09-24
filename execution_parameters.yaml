@@ -7,7 +7,7 @@ application_parameters:
 ## dataset parameters
 dataset_parameters:
   base_path: '../../hq_wmca/'
-  execution_mode: 'val'
+  execution_mode: 'test'
 
 ## input modalities/transformations
 input_parameters:

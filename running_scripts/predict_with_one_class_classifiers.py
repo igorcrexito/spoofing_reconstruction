@@ -39,9 +39,23 @@ if __name__ == '__main__':
     #class_filter = 'glasses'
     #feature_files = [x for x in feature_files if class_filter in x]
 
+    class_vector = ['bonafide']
     for file in tqdm.tqdm(feature_files):
         feature_file = np.genfromtxt(file, delimiter=',', dtype=np.float16,)
 
+        positive_class = 0
+        for classe in class_vector:
+            if classe in file:
+                label_list.extend([1] * feature_file.shape[0])
+                color_list.extend(['blue'] * feature_file.shape[0])
+                positive_class = 1
+                break
+
+        if positive_class == 0:
+            label_list.extend([-1] * feature_file.shape[0])
+            color_list.extend(['orange'] * feature_file.shape[0])
+
+        '''
         if 'bonafide' in file:
             label_list.extend([1] * feature_file.shape[0])
             color_list.extend(['blue'] * feature_file.shape[0])
@@ -75,6 +89,7 @@ if __name__ == '__main__':
         elif 'makeup' in file:
             label_list.extend([-1] * feature_file.shape[0])
             color_list.extend(["magenta"] * feature_file.shape[0])
+        '''
 
         if all_features is None:
             all_features = feature_file

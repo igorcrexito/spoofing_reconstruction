@@ -40,6 +40,14 @@ if __name__ == '__main__':
     autoencoder_features = np.array(pd.read_csv(
         f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
 
+    #class_vector = ['glasses', 'mannequin', 'print', 'replay', 'rigid_mask']
+    class_vector = []
+    for classe in class_vector:
+        current_features = np.array(pd.read_csv(
+            f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{classe}_train.csv',
+            header=None), dtype=np.float16)
+        autoencoder_features = np.concatenate((autoencoder_features, current_features), axis=0)
+
     print('Reading the dimensionality reduction model and transforming features')
     ## reducing the data dimensionality and getting the clustering predictions
     compressor = load(f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
