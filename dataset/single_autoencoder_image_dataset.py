@@ -8,6 +8,7 @@ from descriptors.bsif_descriptor import BSIFDescriptor
 from descriptors.elbp_descriptor import ELBPDescriptor
 from descriptors.noise_descriptor import NoiseDescriptor
 from descriptors.reflectance_descriptor import ReflectanceDescriptor
+from descriptors.spectral_descriptor import SpectralDescriptor
 from vit_keras import vit
 import glob
 
@@ -85,6 +86,8 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
 
         eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
 
+        spectral_descriptor = SpectralDescriptor(descriptor_name='spectral', sigma=0.35, kernel_dimension=7)
+
         for i, image_path in enumerate(list_of_images_temp):
             # Store sample
             original_image = Image.open(f"{image_path}/0.png").resize((self.image_size[0], self.image_size[1]))
@@ -95,8 +98,8 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                 augmentation_images.append(self._apply_augmentation(image=original_image, augmentation=augmentation))
 
             for image in augmentation_images:
-                output_image = np.ones((image.width, image.height, 10),
-                                       dtype=np.float16)  ## 8 is the number of output dimensions due to features
+                output_image = np.ones((image.width, image.height, 11),
+                                       dtype=np.float16)  ## 11 is the number of output dimensions due to features
 
                 ## APPENDING RGB IMAGE
                 output_image[:, :, 0:3] = self._normalize_image(vit.preprocess_inputs(np.array(image)))
@@ -132,6 +135,14 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                 current_image = ImageOps.grayscale(image)
                 current_image = eblp_descriptor.compute_feature(image=np.array(current_image))
                 output_image[:, :, 9:10] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
+                X.append(output_image)
+
+                ### GENERATING DATA FOR SPECTRAL INPUT MODALITY ###
+                current_image = ImageOps.grayscale(image)
+                current_image = spectral_descriptor.compute_feature(image=np.array(current_image))
+                output_image[:, :, 10:11] = np.reshape(
                     self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                     (image.width, image.height, 1))
                 X.append(output_image)

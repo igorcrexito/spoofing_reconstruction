@@ -7,19 +7,20 @@ application_parameters:
 ## dataset parameters
 dataset_parameters:
   base_path: '../../hq_wmca_rgb/'
-  execution_mode: 'val'
+  execution_mode: 'test'
 
 ## input modalities/transformations
 input_parameters:
   input_modalities: ['elbp', 'reflectance', 'bsif_7x7_5']
   augmentation_list: ["flip"]
   bsif_base_path: '../filters/computed_features/'
+  additional_features: ''
 
 ## model parameters
 model_parameters:
   number_of_epochs: 500
   learning_rate: 0.0015
-  batch_size: 3
+  batch_size: 2
   partial_layer: "intermediate_layer_10" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
 
 ## visualization parameters

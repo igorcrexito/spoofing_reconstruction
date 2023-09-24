@@ -7,7 +7,7 @@ from model_architectures.one_class_classifier import OneClassClassifier
 from model_architectures.clustering_method import ClusteringMethod
 import numpy as np
 from joblib import dump, load
-
+import random
 
 def train_one_class_classifier(input_dataframe: pd.DataFrame, classifier_name: str, classifier_index: int = None):
     ## instantiating a one-class classifier
@@ -32,13 +32,28 @@ if __name__ == '__main__':
     with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
+    if params["input_parameters"]["additional_features"] != '':
+        additional_feature = f'_{params["input_parameters"]["additional_features"]}'
+    else:
+        additional_feature = ''
+
     ## retrieving the specified number of clusters
     number_of_clusters = params["clustering_parameters"]["number_of_clusters"]
 
     print("Reading the training data files")
     ## reading the features extracted with autoencoder activations
     autoencoder_features = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train{additional_feature}.csv', header=None), dtype=np.float16)
+
+    class_vector = ['glasses', 'mannequin', 'print', 'replay', 'rigid_mask', 'flexible_mask', 'paper_mask', 'wigs', 'tattoo', 'makeup']
+    picked_classes = random.sample(class_vector, k=5)
+    print(f'the picked classes are: {picked_classes}')
+
+    for classe in picked_classes:
+        class_features = np.array(pd.read_csv(
+            f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{classe}_train{additional_feature}.csv',
+            header=None), dtype=np.float16)
+        autoencoder_features = np.concatenate((autoencoder_features, class_features), axis=0)
 
     print('Reading the dimensionality reduction model and transforming features')
     ## reducing the data dimensionality and getting the clustering predictions

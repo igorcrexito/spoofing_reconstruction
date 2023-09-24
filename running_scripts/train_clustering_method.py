@@ -17,10 +17,15 @@ if __name__ == '__main__':
     with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
+    if params["input_parameters"]["additional_features"] != '':
+        additional_feature = f'_{params["input_parameters"]["additional_features"]}'
+    else:
+        additional_feature = ''
+
     ## reading the features extracted with autoencoder activations
     print("Reading training file (bonafide data)")
     autoencoder_features = np.array(pd.read_csv(
-        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train.csv', header=None), dtype=np.float16)
+        f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train{additional_feature}.csv', header=None), dtype=np.float16)
 
     np.random.shuffle(autoencoder_features)
     ## invoking the method to train the one-class classifiers

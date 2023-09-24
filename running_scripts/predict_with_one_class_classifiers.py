@@ -25,8 +25,13 @@ if __name__ == '__main__':
     with open("../execution_parameters.yaml", "r") as f:
         params = yaml.full_load(f)
 
+    if params["input_parameters"]["additional_features"] != '':
+        additional_feature = f'_{params["input_parameters"]["additional_features"]}'
+    else:
+        additional_feature = ''
+
     print("Reading csv files containing bonafide and attack features")
-    feature_files = glob.glob(f'../outputs/{params["application_parameters"]["dataset"]}/*test.csv')
+    feature_files = glob.glob(f'../outputs/{params["application_parameters"]["dataset"]}/*test{additional_feature}.csv')
 
     print("Loading the compressor model")
     compressor = load(f'trained_models/{params["application_parameters"]["dataset"]}/pca_model.joblib')
@@ -36,8 +41,8 @@ if __name__ == '__main__':
     color_list = []
 
     ## optional filter class to check the behavior of each class
-    filter_class = 'makeup'
-    feature_files = [x for x in feature_files if filter_class in x]
+    #filter_class = 'replay'
+    #feature_files = [x for x in feature_files if filter_class in x]
 
     for file in tqdm.tqdm(feature_files):
         feature_file = np.genfromtxt(file, delimiter=',', dtype=np.float16,)
@@ -113,13 +118,14 @@ if __name__ == '__main__':
 
     apcer_metric = APCERMetric(metric_name="Attack_presentation_classification_error_rate",
                                input_data=np.array(predictions), label_data=np.array(label_list))
-    npcer_metric = NPCERMetric(metric_name="Attack_presentation_classification_error_rate",
-                               input_data=np.array(predictions), label_data=np.array(label_list))
+    frr_metric = FRRMetric(metric_name="False_rejection_rate",
+                           input_data=np.array(predictions), label_data=np.array(label_list))
     fpr_metric = FPRMetric(metric_name="Attack_presentation_classification_error_rate",
                            input_data=np.array(predictions), label_data=np.array(label_list))
+
+    npcer_metric = NPCERMetric(metric_name="Attack_presentation_classification_error_rate",
+                               input_data=np.array(predictions), label_data=np.array(label_list))
     tpr_metric = TPRMetric(metric_name="Attack_presentation_classification_error_rate",
-                           input_data=np.array(predictions), label_data=np.array(label_list))
-    frr_metric = FRRMetric(metric_name="False_rejection_rate",
                            input_data=np.array(predictions), label_data=np.array(label_list))
     bpcer_metric = BPCERMetric(metric_name="Bonafide_presentation_error_metric",
                            input_data=np.array(predictions), label_data=np.array(label_list))
@@ -131,3 +137,4 @@ if __name__ == '__main__':
     print(f"FPR: {fpr_metric.metric_value}")
     print(f"FRR: {frr_metric.metric_value}")
     print(f"TPR: {tpr_metric.metric_value}")
+    print(f"HTER: {(fpr_metric.metric_value + frr_metric.metric_value)/2}")

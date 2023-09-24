@@ -135,7 +135,7 @@ class SingleAutoencoder():
         decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_10')(decoding)
         decoding = UpSampling2D(size=(4, 4), name='up5')(decoding)
 
-        output = Conv2D(7, (3, 3), activation='relu', padding='same')(decoding)
+        output = Conv2D(8, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')

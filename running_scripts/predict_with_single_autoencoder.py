@@ -101,7 +101,7 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
         model_responses = model_responses / column_max_no_zeros
 
         if working_modality == 'bonafide':
-            model_responses = model_responses*0.95
+            model_responses = model_responses
 
         with open(f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{working_modality}_{operation}.csv', mode='w',
                   newline='') as file:
