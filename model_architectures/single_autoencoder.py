@@ -1,5 +1,6 @@
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, Concatenate, LayerNormalization, ZeroPadding2D, \
-    BatchNormalization, Flatten, Dense, Reshape, LocallyConnected2D, DepthwiseConv2D, Add, Dropout, MultiHeadAttention, Rescaling
+    BatchNormalization, Flatten, Dense, Reshape, LocallyConnected2D, DepthwiseConv2D, Add, Dropout, MultiHeadAttention, \
+    Rescaling
 from keras.models import Model
 import numpy as np
 import tensorflow as tf
@@ -7,22 +8,27 @@ from keras.applications import imagenet_utils
 import keras
 
 import sys
+
 sys.path.insert(0, '..')
 from custom_losses.custom_losses import focal_loss_for_regression, root_mean_squared_error
 
+
 class SingleAutoencoder():
 
-    def __init__(self, input_dimension: int, summarize_model: bool, patch_size: int = 4, expansion_factor: int = 2, intermediate_layer: str = "", pre_trained_path: str = None):
+    def __init__(self, input_dimension: int, summarize_model: bool, patch_size: int = 4, expansion_factor: int = 2,
+                 intermediate_layer: str = "", pre_trained_path: str = None):
         self._input_dimension = input_dimension
         self._patch_size = patch_size
         self._expansion_factor = expansion_factor
 
         if pre_trained_path is not None:
-            self.model = keras.models.load_model(pre_trained_path, custom_objects={"root_mean_squared_error": root_mean_squared_error, 'focal_loss': focal_loss_for_regression(gamma=1.1, alpha=0.5)})
+            self.model = keras.models.load_model(pre_trained_path,
+                                                 custom_objects={"root_mean_squared_error": root_mean_squared_error,
+                                                                 'focal_loss': focal_loss_for_regression(gamma=1.1,
+                                                                                                         alpha=0.5)})
         else:
             self.model = self._create_model(summarize_model=summarize_model)
         self.partial_model = self._retrieve_partial_model(layer_name=intermediate_layer)
-
 
     ## layer to compose the mobileViT
     def conv_block(self, x, filters=16, kernel_size=3, strides=2):
@@ -61,7 +67,7 @@ class SingleAutoencoder():
             attention_output = MultiHeadAttention(num_heads=num_heads, key_dim=projection_dim, dropout=0.1)(x1, x1)
             x2 = Add()([attention_output, x])
             x3 = LayerNormalization(epsilon=1e-6)(x2)
-            x3 = self.mlp(x3, hidden_units=[x.shape[-1]*2, x.shape[-1]], dropout_rate=0.1,)
+            x3 = self.mlp(x3, hidden_units=[x.shape[-1] * 2, x.shape[-1]], dropout_rate=0.1, )
             x = Add()([x3, x2])
 
         return x
@@ -85,31 +91,34 @@ class SingleAutoencoder():
 
         return local_global_features
 
-
     def _create_model(self, summarize_model: bool = False):
         model_input = Input((self._input_dimension, self._input_dimension, 3))
-        x = Rescaling(scale=1.0/255)(model_input)
+        x = Rescaling(scale=1.0 / 255)(model_input)
 
         ## initial conv-stem -> MV2 block
         x = self.conv_block(x, filters=32)
-        x = self.inverted_residual_block(x, expanded_channels=16*self._expansion_factor, output_channels=32)
+        x = self.inverted_residual_block(x, expanded_channels=16 * self._expansion_factor, output_channels=32)
 
         ## Downsampling with MV2 block
 
-        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32,
+                                         strides=2)
         x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32)
         x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=32)
 
         ## First MV2 -> MobileViT block
-        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=64, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=32 * self._expansion_factor, output_channels=64,
+                                         strides=2)
         x = self.mobilevit_block(x, num_blocks=2, projection_dim=64)
 
         ## Second MV2 -> MobileViT block
-        x = self.inverted_residual_block(x, expanded_channels=64 * self._expansion_factor, output_channels=64, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=64 * self._expansion_factor, output_channels=64,
+                                         strides=2)
         x = self.mobilevit_block(x, num_blocks=4, projection_dim=80)
 
         ## Second MV2 -> MobileViT block
-        x = self.inverted_residual_block(x, expanded_channels=80 * self._expansion_factor, output_channels=80, strides=2)
+        x = self.inverted_residual_block(x, expanded_channels=80 * self._expansion_factor, output_channels=80,
+                                         strides=2)
         x = self.mobilevit_block(x, num_blocks=3, projection_dim=128)
 
         x = self.conv_block(x, filters=128, kernel_size=1, strides=1)
@@ -129,13 +138,13 @@ class SingleAutoencoder():
 
         decoding = Conv2D(48, (3, 3), activation='relu', padding='same', name='intermediate_layer_7')(decoding)
         decoding = Conv2D(48, (3, 3), activation='relu', padding='same', name='intermediate_layer_8')(decoding)
-        #decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
+        # decoding = UpSampling2D(size=(2, 2), name='up4')(decoding)
 
-        decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_9')(decoding)
-        decoding = Conv2D(16, (3, 3), activation='relu', padding='same', name='intermediate_layer_10')(decoding)
+        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_9')(decoding)
+        decoding = Conv2D(32, (3, 3), activation='relu', padding='same', name='intermediate_layer_10')(decoding)
         decoding = UpSampling2D(size=(4, 4), name='up5')(decoding)
 
-        output = Conv2D(8, (3, 3), activation='relu', padding='same')(decoding)
+        output = Conv2D(10, (3, 3), activation='relu', padding='same')(decoding)
 
         autoencoder = Model([model_input], [output])
         autoencoder.compile(optimizer='adam', loss='mean_squared_error')
@@ -145,11 +154,11 @@ class SingleAutoencoder():
 
         return autoencoder
 
-
     def fit_model(self, input_data: np.ndarray, validation_data: np.ndarray, number_of_epochs: int, dataset: str):
 
-        checkpoint = tf.keras.callbacks.ModelCheckpoint(f'trained_models/{dataset}/best_autoencoder_single_autoencoder.hdf5',
-                                                        monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = tf.keras.callbacks.ModelCheckpoint(
+            f'trained_models/{dataset}/best_autoencoder_single_autoencoder.hdf5',
+            monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 
         self.model.fit_generator(epochs=number_of_epochs,
                                  shuffle=True,
@@ -167,7 +176,7 @@ class SingleAutoencoder():
 
         if layer_name != "":
             intermediate_output = self.model.get_layer(layer_name).output
-            #intermediate_output = self.model.layers[-12].output
+            # intermediate_output = self.model.layers[-12].output
             print(np.shape(intermediate_output))
             intermediate_model = Model(self.model.input, outputs=[intermediate_output])
         else:

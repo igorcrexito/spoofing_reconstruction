@@ -84,7 +84,10 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
 
         reflectance_descriptor = ReflectanceDescriptor(descriptor_name='reflectance', sigma=125)
 
-        eblp_descriptor = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
+        eblp_descriptor1 = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='default')
+        eblp_descriptor2 = ELBPDescriptor(descriptor_name='elbp', radius=1, neighbors=8, method='ror')
+        eblp_descriptor3 = ELBPDescriptor(descriptor_name='elbp', radius=2, neighbors=8, method='default')
+        eblp_descriptor4 = ELBPDescriptor(descriptor_name='elbp', radius=2, neighbors=8, method='ror')
 
         spectral_descriptor = SpectralDescriptor(descriptor_name='spectral', sigma=0.35, kernel_dimension=7)
 
@@ -98,8 +101,8 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
                 augmentation_images.append(self._apply_augmentation(image=original_image, augmentation=augmentation))
 
             for image in augmentation_images:
-                output_image = np.ones((image.width, image.height, 11),
-                                       dtype=np.float16)  ## 11 is the number of output dimensions due to features
+                output_image = np.ones((image.width, image.height, 13),
+                                       dtype=np.float16)  ## 15 is the number of output dimensions due to features
 
                 ## APPENDING RGB IMAGE
                 output_image[:, :, 0:3] = self._normalize_image(vit.preprocess_inputs(np.array(image)))
@@ -133,19 +136,40 @@ class SingleAutoencoderImageDataset(keras.utils.Sequence):
 
                 ### GENERATING DATA FOR ELBP INPUT MODALITY ###
                 current_image = ImageOps.grayscale(image)
-                current_image = eblp_descriptor.compute_feature(image=np.array(current_image))
+                current_image = eblp_descriptor1.compute_feature(image=np.array(current_image))
                 output_image[:, :, 9:10] = np.reshape(
                     self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                     (image.width, image.height, 1))
                 X.append(output_image)
 
-                ### GENERATING DATA FOR SPECTRAL INPUT MODALITY ###
                 current_image = ImageOps.grayscale(image)
-                current_image = spectral_descriptor.compute_feature(image=np.array(current_image))
+                current_image = eblp_descriptor2.compute_feature(image=np.array(current_image))
                 output_image[:, :, 10:11] = np.reshape(
                     self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
                     (image.width, image.height, 1))
                 X.append(output_image)
+
+                current_image = ImageOps.grayscale(image)
+                current_image = eblp_descriptor3.compute_feature(image=np.array(current_image))
+                output_image[:, :, 11:12] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
+                X.append(output_image)
+
+                current_image = ImageOps.grayscale(image)
+                current_image = eblp_descriptor4.compute_feature(image=np.array(current_image))
+                output_image[:, :, 12:13] = np.reshape(
+                    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                    (image.width, image.height, 1))
+                X.append(output_image)
+
+                ### GENERATING DATA FOR SPECTRAL INPUT MODALITY ###
+                #current_image = ImageOps.grayscale(image)
+                #current_image = spectral_descriptor.compute_feature(image=np.array(current_image))
+                #output_image[:, :, 10:12] = np.reshape(
+                #    self._normalize_image(current_image, number_of_channels=1)[:, :, 0],
+                #    (image.width, image.height, 1))
+                #X.append(output_image)
 
         return np.array(X, dtype=np.float16)
 

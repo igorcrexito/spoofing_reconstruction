@@ -41,7 +41,7 @@ if __name__ == '__main__':
     color_list = []
 
     ## optional filter class to check the behavior of each class
-    #filter_class = 'replay'
+    #filter_class = 'makeup'
     #feature_files = [x for x in feature_files if filter_class in x]
 
     for file in tqdm.tqdm(feature_files):

@@ -21,6 +21,7 @@ class SpectralDescriptor(ImageDescriptor):
         fft_image = cv2.dft(np.float32(residual_image), flags=cv2.DFT_COMPLEX_OUTPUT)
         fft_shifted = np.fft.fftshift(fft_image)
 
-        magnitude_spectrum = 20 * np.log(cv2.magnitude(fft_shifted[:, :, 0], fft_shifted[:, :, 1]))
+        #magnitude_spectrum = 20 * np.log(cv2.magnitude(fft_shifted[:, :, 0], fft_shifted[:, :, 1]))
 
-        return np.reshape(magnitude_spectrum, (256, 256, 1))
+        #return np.reshape(magnitude_spectrum, (256, 256, 1))
+        return fft_shifted

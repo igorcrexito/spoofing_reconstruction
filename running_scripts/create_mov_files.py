@@ -34,7 +34,7 @@ def read_and_process_videos_hdf5(list_of_videos, protocol_file, num_samples, res
     incorrect_files = 0
     number_of_frames_list = []
 
-    for file_path in list_of_videos:
+    for file_path in set(list_of_videos):
 
         ## removing the extension and getting string parts
         reference_folder = file_path.split('/')[-2]

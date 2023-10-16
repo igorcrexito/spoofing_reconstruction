@@ -19,8 +19,8 @@ input_parameters:
 ## model parameters
 model_parameters:
   number_of_epochs: 500
-  learning_rate: 0.0015
-  batch_size: 2
+  learning_rate: 0.0025
+  batch_size: 1
   partial_layer: "intermediate_layer_10" # name of the partial layer to get activations. To perform the prediction with the entire model, set it to ""
 
 ## visualization parameters

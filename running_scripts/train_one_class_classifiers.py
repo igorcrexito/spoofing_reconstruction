@@ -46,8 +46,9 @@ if __name__ == '__main__':
         f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_bonafide_train{additional_feature}.csv', header=None), dtype=np.float16)
 
     class_vector = ['glasses', 'mannequin', 'print', 'replay', 'rigid_mask', 'flexible_mask', 'paper_mask', 'wigs', 'tattoo', 'makeup']
-    picked_classes = random.sample(class_vector, k=5)
-    print(f'the picked classes are: {picked_classes}')
+    #picked_classes = random.sample(class_vector, k=5)
+    #print(f'the picked classes are: {picked_classes}')
+    picked_classes = []
 
     for classe in picked_classes:
         class_features = np.array(pd.read_csv(

@@ -207,6 +207,6 @@ if __name__ == '__main__':
             image_base_path=f'{params["dataset_parameters"]["base_path"]}attack/wigs/{operation}/*/',
             partial_activations=params["model_parameters"]["partial_layer"],
             image_size=(params["application_parameters"]["image_size"], params["application_parameters"]["image_size"]),
-            working_modality='wigs',
+            working_modality='wig',
             operation=operation)
 
