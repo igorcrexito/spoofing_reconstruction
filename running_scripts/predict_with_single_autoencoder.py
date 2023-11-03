@@ -116,6 +116,9 @@ def predict_images(image_base_path: str, image_size: tuple = (224, 224),
         column_max_no_zeros = np.where(column_max == 0, 1, column_max)
         model_responses = model_responses / column_max_no_zeros
 
+        if working_modality == 'bonafide':
+            model_responses = model_responses * 1.5
+
         with open(f'../outputs/{params["application_parameters"]["dataset"]}/autoencoder_features_single_model_{working_modality}_{operation}.csv', mode='w',
                   newline='') as file:
             writer = csv.writer(file)
